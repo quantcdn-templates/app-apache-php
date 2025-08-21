@@ -1,0 +1,51 @@
+# Version control
+.git
+.gitignore
+
+# Documentation
+README.md
+*.md
+
+# Docker files
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Development files
+docker-compose.override.yml
+
+# PHP application cache and uploads
+src/cache/
+src/uploads/
+src/tmp/
+
+# PHP dependencies (will be installed in container)
+src/vendor/
+src/node_modules/
+
+# Development and test files
+src/tests/
+src/.env
+src/.env.*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Database dumps
+*.sql
+*.sql.gz

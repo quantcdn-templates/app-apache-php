@@ -1,0 +1,124 @@
+name: Build and Publish Apache+PHP Images
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+  schedule:
+    # Run weekly to pick up new base image updates
+    - cron: '0 2 * * 1'
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: quantcdn-templates/app-apache-php
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        php_version: ['8.2', '8.3', '8.4']
+        include:
+          - php_version: '8.4'
+            is_default: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build image for testing
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          load: true
+          tags: temp-build:latest
+          build-args: |
+            PHP_VERSION=${{ matrix.php_version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Verify PHP version
+        id: php-version
+        run: |
+          ACTUAL_PHP_VERSION=$(docker run --rm temp-build:latest php -r "echo PHP_VERSION;")
+          echo "PHP_VERSION=${{ matrix.php_version }}" >> $GITHUB_OUTPUT
+          echo "Expected PHP version: ${{ matrix.php_version }}"
+          echo "Actual PHP version: $ACTUAL_PHP_VERSION"
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch,suffix=-${{ matrix.php_version }}
+            type=ref,event=pr,suffix=-${{ matrix.php_version }}
+            type=raw,value=${{ matrix.php_version }},enable={{is_default_branch}}
+            type=raw,value=latest,enable=${{ matrix.is_default && is_default_branch }}
+            type=raw,value=${{ matrix.php_version }}-dev,enable=${{ github.ref == 'refs/heads/develop' }}
+            type=raw,value=dev,enable=${{ matrix.is_default && github.ref == 'refs/heads/develop' }}
+            type=semver,pattern={{version}}-${{ matrix.php_version }}
+            type=semver,pattern={{major}}.{{minor}}-${{ matrix.php_version }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            PHP_VERSION=${{ matrix.php_version }}
+          cache-from: |
+            type=gha
+            type=registry,ref=ghcr.io/quantcdn-templates/app-apache-php:cache
+          cache-to: |
+            type=gha,mode=max
+            type=registry,ref=ghcr.io/quantcdn-templates/app-apache-php:cache,mode=max
+
+      - name: Test container
+        run: |
+          # Test that the container starts and Apache is responding
+          docker run -d --name test-apache-php-${{ matrix.php_version }} \
+            -p 808${{ matrix.php_version == '8.2' && '2' || matrix.php_version == '8.3' && '3' || '4' }}:80 \
+            -e DB_HOST=test-host \
+            -e DB_DATABASE=test-db \
+            temp-build:latest
+          
+          sleep 10
+          # Test that Apache is running and serving PHP
+          curl -f http://localhost:808${{ matrix.php_version == '8.2' && '2' || matrix.php_version == '8.3' && '3' || '4' }}/ || exit 1
+          
+          # Clean up
+          docker stop test-apache-php-${{ matrix.php_version }}
+          docker rm test-apache-php-${{ matrix.php_version }}
+
+      - name: Create build summary
+        if: matrix.is_default
+        run: |
+          echo "## Apache+PHP Template Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **PHP Versions Built**: 8.2, 8.3, 8.4" >> $GITHUB_STEP_SUMMARY
+          echo "- **Default PHP Version**: 8.4 (:latest tag)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tags Generated**: :8.2, :8.3, :8.4, :latest" >> $GITHUB_STEP_SUMMARY
+          echo "- **Base Image**: php:\${{ matrix.php_version }}-apache-bullseye" >> $GITHUB_STEP_SUMMARY
+          echo "- **Registry**: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" >> $GITHUB_STEP_SUMMARY

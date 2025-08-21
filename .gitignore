@@ -1,0 +1,28 @@
+# PHP dependencies
+src/vendor/
+composer.lock
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Local development overrides (not for production deployment)
+docker-compose.override.yml
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Database dumps
+*.sql
+*.sql.gz
+
+# Logs
+*.log

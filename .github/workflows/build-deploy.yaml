@@ -1,0 +1,86 @@
+name: Build and Push Apache+PHP to Quant Cloud
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+    tags:
+      - '*'
+
+concurrency:
+  group: build-and-push-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up environment variables
+        id: vars
+        run: |
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            # For tags, use the tag name
+            TAG=${GITHUB_REF#refs/tags/}
+            echo "suffix=-${TAG}" >> $GITHUB_OUTPUT
+          elif [[ $GITHUB_REF == refs/heads/develop ]]; then
+            # For develop branch, use -staging suffix
+            echo "suffix=-staging" >> $GITHUB_OUTPUT
+            echo "environment=staging" >> $GITHUB_OUTPUT
+          elif [[ $GITHUB_REF == refs/heads/main ]]; then
+            # For main branch, use -latest suffix
+            echo "suffix=-latest" >> $GITHUB_OUTPUT
+            echo "environment=production" >> $GITHUB_OUTPUT
+          else
+            echo "Error: Unknown branch or tag ref: $GITHUB_REF"
+            exit 1
+          fi
+
+      - name: Get ECR Credentials
+        uses: quantcdn/quant-cloud-ecr-action@v1
+        id: ecr-login
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+
+      - name: Login to ECR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ steps.ecr-login.outputs.endpoint }}
+          username: ${{ steps.ecr-login.outputs.username }}
+          password: ${{ steps.ecr-login.outputs.password }}
+
+      - name: Strip protocol from ECR endpoint
+        id: ecr-endpoint-stripped
+        run: |
+          echo "stripped_endpoint=$(echo '${{ steps.ecr-login.outputs.endpoint }}' | sed -E 's|^https?://||')" >> $GITHUB_OUTPUT
+
+      - name: Build and push Apache+PHP image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ steps.ecr-endpoint-stripped.outputs.stripped_endpoint }}/${{ secrets.QUANT_ORGANIZATION }}/${{ secrets.QUANT_APPLICATION }}:apache-php${{ steps.vars.outputs.suffix }}
+          cache-from: |
+            type=gha
+            type=registry,ref=ghcr.io/quantcdn-templates/app-apache-php:cache
+          cache-to: |
+            type=gha,mode=max
+
+      - name: Redeploy environment
+        uses: quantcdn/quant-cloud-environment-state-action@v1
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          application: ${{ secrets.QUANT_APPLICATION }}
+          environment: ${{ steps.vars.outputs.environment }}
+          action: redeploy

@@ -1,0 +1,62 @@
+services:
+  apache-php:
+    image: ghcr.io/quantcdn-templates/app-apache-php:latest
+    build: .
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      # Mount local source code for development
+      - ./src:/var/www/html
+    environment:
+      # Database Configuration
+      - DB_HOST=${DB_HOST:-db}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_DATABASE=${DB_DATABASE:-apache_php}
+      - DB_USERNAME=${DB_USERNAME:-apache_php}
+      - DB_PASSWORD=${DB_PASSWORD:-apache_php}
+      
+      # SMTP Configuration
+      - QUANT_SMTP_RELAY_ENABLED=${QUANT_SMTP_RELAY_ENABLED:-false}
+      - QUANT_SMTP_HOST=${QUANT_SMTP_HOST}
+      - QUANT_SMTP_PORT=${QUANT_SMTP_PORT:-587}
+      - QUANT_SMTP_USERNAME=${QUANT_SMTP_USERNAME}
+      - QUANT_SMTP_PASSWORD=${QUANT_SMTP_PASSWORD}
+      - QUANT_SMTP_FROM=${QUANT_SMTP_FROM}
+      - QUANT_SMTP_FROM_NAME=${QUANT_SMTP_FROM_NAME}
+      - QUANT_SMTP_FROM_DOMAIN=${QUANT_SMTP_FROM_DOMAIN}
+      - QUANT_SMTP_HOSTNAME=${QUANT_SMTP_HOSTNAME}
+      
+      # Debug Configuration  
+      - QUANT_DEBUG=${QUANT_DEBUG:-0}
+      - LOG_DEBUG=${LOG_DEBUG:-0}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    depends_on:
+      - db
+
+  db:
+    labels:
+      quant.type: mysql
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-rootpassword}
+      - MYSQL_DATABASE=${DB_DATABASE:-apache_php}
+      - MYSQL_USER=${DB_USERNAME:-apache_php}
+      - MYSQL_PASSWORD=${DB_PASSWORD:-apache_php}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  app_data:
+  db_data: 
