@@ -74,9 +74,9 @@ jobs:
             type=ref,event=branch,suffix=-${{ matrix.php_version }}
             type=ref,event=pr,suffix=-${{ matrix.php_version }}
             type=raw,value=${{ matrix.php_version }},enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=latest,enable=${{ matrix.is_default && github.ref == 'refs/heads/main' }}
+            type=raw,value=latest,enable=${{ matrix.is_default == true && github.ref == 'refs/heads/main' }}
             type=raw,value=${{ matrix.php_version }}-dev,enable=${{ github.ref == 'refs/heads/develop' }}
-            type=raw,value=dev,enable=${{ matrix.is_default && github.ref == 'refs/heads/develop' }}
+            type=raw,value=dev,enable=${{ matrix.is_default == true && github.ref == 'refs/heads/develop' }}
             type=semver,pattern={{version}}-${{ matrix.php_version }}
             type=semver,pattern={{major}}.{{minor}}-${{ matrix.php_version }}
 
@@ -84,6 +84,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
