@@ -12,9 +12,6 @@ services:
       - DB_USERNAME=apache_php
       - DB_PASSWORD=apache_php
       
-      # Debug Configuration for local development
-      - QUANT_DEBUG=1
-      - LOG_DEBUG=1
       
       # SMTP Configuration (uncomment for testing)
       # - QUANT_SMTP_RELAY_ENABLED=false

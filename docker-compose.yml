@@ -27,9 +27,7 @@ services:
       - QUANT_SMTP_FROM_DOMAIN=${QUANT_SMTP_FROM_DOMAIN}
       - QUANT_SMTP_HOSTNAME=${QUANT_SMTP_HOSTNAME}
       
-      # Debug Configuration  
-      - QUANT_DEBUG=${QUANT_DEBUG:-0}
-      - LOG_DEBUG=${LOG_DEBUG:-0}
+
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost/ || exit 1"]
       interval: 30s

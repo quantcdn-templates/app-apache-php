@@ -5,7 +5,7 @@ A production-ready Apache HTTP Server with PHP 8.4 template featuring common ext
 ## Features
 
 - **Apache HTTP Server** with mod_php for simple single-container deployment
-- **PHP 8.4** with essential extensions (GD, PDO, OPcache, BCMath, etc.)
+- **PHP 8.4** (default) with versions 8.2, 8.3, and 8.4 available
 - **MySQL 8.4** database with optional integration
 - **Quant integration** ready out of the box:
   - Client IP handling via `Quant-Client-IP` header
@@ -31,23 +31,32 @@ A production-ready Apache HTTP Server with PHP 8.4 template featuring common ext
    cd my-php-app
    ```
 
-2. **Add your PHP application**
+2. **Choose PHP version (optional)**
+   
+   The template uses PHP 8.4 by default. To use a different version, update your docker-compose.yml:
+   ```yaml
+   services:
+     apache-php:
+       image: ghcr.io/quantcdn-templates/app-apache-php:8.2  # or 8.3, 8.4
+   ```
+
+3. **Add your PHP application**
    
    Place your PHP application files in the `src/` directory. The template includes a simple demo page that shows system information and tests database connectivity.
 
-3. Copy and configure environment variables:
+4. Copy and configure environment variables:
    ```bash
    cp docker-compose.override.yml.example docker-compose.override.yml
    ```
    
    Edit `docker-compose.override.yml` to set your local environment variables.
 
-4. Start the application:
+5. Start the application:
    ```bash
    docker-compose up -d
    ```
 
-5. Access your application at `http://localhost`
+6. Access your application at `http://localhost`
 
 ## Configuration
 
@@ -70,17 +79,10 @@ Key environment variables you can configure:
 - `QUANT_SMTP_PASSWORD` - SMTP authentication password
 - `QUANT_SMTP_FROM` - From email address
 - `QUANT_SMTP_FROM_NAME` - From display name
+- `QUANT_SMTP_FROM_DOMAIN` - SMTP domain for configuration
+- `QUANT_SMTP_HOSTNAME` - SMTP hostname override
 
-#### Quant Integration
-- `QUANT_ENABLED` - Enable Quant integration
-- `QUANT_API_ENDPOINT` - Quant API endpoint
-- `QUANT_CUSTOMER` - Your Quant customer ID
-- `QUANT_PROJECT` - Your Quant project ID
-- `QUANT_TOKEN` - Your Quant API token
 
-#### Debug Configuration
-- `QUANT_DEBUG` - Enable Quant debug logging (default: 0)
-- `LOG_DEBUG` - Enable general debug logging (default: 0)
 
 ### File Storage
 
@@ -187,12 +189,12 @@ try {
 $dbHost = $_ENV['DB_HOST'] ?? 'localhost';
 $dbName = $_ENV['DB_DATABASE'] ?? 'myapp';
 
-// Quant configuration
-$quantEnabled = $_ENV['QUANT_ENABLED'] ?? false;
-$quantEndpoint = $_ENV['QUANT_API_ENDPOINT'] ?? '';
+// SMTP configuration  
+$smtpHost = $_ENV['QUANT_SMTP_HOST'] ?? '';
+$smtpFrom = $_ENV['QUANT_SMTP_FROM'] ?? '';
 
 echo "Database: $dbHost/$dbName<br>";
-echo "Quant Enabled: " . ($quantEnabled ? 'Yes' : 'No');
+echo "SMTP Host: " . ($smtpHost ?: 'Not configured');
 ```
 
 ## Deployment
