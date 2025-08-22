@@ -73,8 +73,8 @@ jobs:
           tags: |
             type=ref,event=branch,suffix=-${{ matrix.php_version }}
             type=ref,event=pr,suffix=-${{ matrix.php_version }}
-            type=raw,value=${{ matrix.php_version }},enable={{is_default_branch}}
-            type=raw,value=latest,enable=${{ matrix.is_default && is_default_branch }}
+            type=raw,value=${{ matrix.php_version }},enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=latest,enable=${{ matrix.is_default && github.ref == 'refs/heads/main' }}
             type=raw,value=${{ matrix.php_version }}-dev,enable=${{ github.ref == 'refs/heads/develop' }}
             type=raw,value=dev,enable=${{ matrix.is_default && github.ref == 'refs/heads/develop' }}
             type=semver,pattern={{version}}-${{ matrix.php_version }}
