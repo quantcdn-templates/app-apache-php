@@ -1,11 +1,11 @@
 # Apache + PHP Application Template
 
-A production-ready Apache HTTP Server with PHP 8.3 template featuring common extensions, MySQL database support, and Quant integration.
+A production-ready Apache HTTP Server with PHP 8.4 template featuring common extensions, MySQL database support, and Quant integration.
 
 ## Features
 
 - **Apache HTTP Server** with mod_php for simple single-container deployment
-- **PHP 8.3** with essential extensions (GD, PDO, OPcache, BCMath, etc.)
+- **PHP 8.4** with essential extensions (GD, PDO, OPcache, BCMath, etc.)
 - **MySQL 8.4** database with optional integration
 - **Quant integration** ready out of the box:
   - Client IP handling via `Quant-Client-IP` header

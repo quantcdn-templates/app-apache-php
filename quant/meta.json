@@ -2,7 +2,7 @@
     "title": "Apache + PHP",
     "url": "/deploy/step-one?template=app-apache-php",
     "summary": "A production-ready Apache + PHP template with common extensions and Quant integration features.",
-    "content": "Apache HTTP Server with PHP 8.3 and mod_php provides a simple, single-container solution for PHP web applications. Includes common PHP extensions (GD, PDO, OPcache, etc.), MySQL database support, and built-in Quant features like client IP handling and SMTP relay support.",
+    "content": "Apache HTTP Server with PHP 8.4 and mod_php provides a simple, single-container solution for PHP web applications. Includes common PHP extensions (GD, PDO, OPcache, etc.), MySQL database support, and built-in Quant features like client IP handling and SMTP relay support.",
     "image": "https://raw.githubusercontent.com/quantcdn-templates/app-apache-php/main/quant/screenshot.png",
     "categories": ["server", "php", "apache"],
     "tags": ["apache", "php", "web-server", "mysql", "quant"],
