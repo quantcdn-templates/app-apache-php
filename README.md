@@ -5,7 +5,7 @@ A production-ready Apache HTTP Server with PHP 8.4 template featuring common ext
 ## Features
 
 - **Apache HTTP Server** with mod_php for simple single-container deployment
-- **PHP 8.4** (default) with versions 8.2, 8.3, and 8.4 available
+- **PHP 8.4** (default) with versions 7.4, 8.2, 8.3, and 8.4 available
 - **MySQL 8.4** database with optional integration
 - **Quant integration** ready out of the box:
   - Client IP handling via `Quant-Client-IP` header
@@ -37,8 +37,15 @@ A production-ready Apache HTTP Server with PHP 8.4 template featuring common ext
    ```yaml
    services:
      apache-php:
-       image: ghcr.io/quantcdn-templates/app-apache-php:8.2  # or 8.3, 8.4
+       image: ghcr.io/quantcdn-templates/app-apache-php:7.4  # or 8.2, 8.3, 8.4
    ```
+   
+   **Available versions:**
+   - `:7.4` - For legacy applications (PHP 7.4 is EOL)
+   - `:8.2` - Stable, widely supported
+   - `:8.3` - Current stable  
+   - `:8.4` - Latest stable (default)
+   - `:latest` - Points to PHP 8.4
 
 3. **Add your PHP application**
    

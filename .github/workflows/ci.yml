@@ -27,7 +27,7 @@ jobs:
       packages: write
     strategy:
       matrix:
-        php_version: ['8.2', '8.3', '8.4']
+        php_version: ['7.4', '8.2', '8.3', '8.4']
         include:
           - php_version: '8.4'
             is_default: true
@@ -118,8 +118,8 @@ jobs:
         if: matrix.is_default
         run: |
           echo "## Apache+PHP Template Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- **PHP Versions Built**: 8.2, 8.3, 8.4" >> $GITHUB_STEP_SUMMARY
+          echo "- **PHP Versions Built**: 7.4, 8.2, 8.3, 8.4" >> $GITHUB_STEP_SUMMARY
           echo "- **Default PHP Version**: 8.4 (:latest tag)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Tags Generated**: :8.2, :8.3, :8.4, :latest" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tags Generated**: :7.4, :8.2, :8.3, :8.4, :latest" >> $GITHUB_STEP_SUMMARY
           echo "- **Base Image**: php:\${{ matrix.php_version }}-apache-bullseye" >> $GITHUB_STEP_SUMMARY
           echo "- **Registry**: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" >> $GITHUB_STEP_SUMMARY
