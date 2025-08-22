@@ -6,7 +6,7 @@ services:
     ports:
       - "80:80"
     volumes:
-      # Mount local source code for development
+      # Mount local source code for development (overrides container's src/)
       - ./src:/var/www/html
     environment:
       # Database Configuration

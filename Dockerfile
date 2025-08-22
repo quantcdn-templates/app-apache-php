@@ -100,6 +100,12 @@ COPY quant/php.ini.d/* /usr/local/etc/php/conf.d/
 # Set working directory
 WORKDIR /var/www/html
 
+# Copy application source code
+COPY src/ /var/www/html/
+
+# Set proper permissions
+RUN chown -R www-data:www-data /var/www/html
+
 # Expose port
 EXPOSE 80
 
