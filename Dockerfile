@@ -1,26 +1,11 @@
 ARG PHP_VERSION=8.4
-FROM php:${PHP_VERSION}-apache-bullseye
+ARG DEBIAN_VERSION=trixie
+# Use trixie for PHP 8.2+, bullseye for PHP 7.4 (since trixie/bookworm not available)
+FROM php:${PHP_VERSION}-apache-${DEBIAN_VERSION}
 
-# Remap www-data to UID/GID 1000 to match EFS access points
-RUN groupmod -g 1000 www-data && \
-    usermod -u 1000 -g 1000 www-data && \
-    # Fix ownership of existing www-data files after UID/GID change
-    find / -user 33 -exec chown www-data {} \; 2>/dev/null || true && \
-    find / -group 33 -exec chgrp www-data {} \; 2>/dev/null || true && \
-    # Configure Apache to log to stdout/stderr 
-    sed -i 's/ErrorLog .*/ErrorLog \/dev\/stderr/' /etc/apache2/apache2.conf && \
-    sed -i 's/CustomLog .*/CustomLog \/dev\/stdout combined/' /etc/apache2/sites-available/000-default.conf && \
-    sed -i 's!ErrorLog.*!ErrorLog /dev/stderr!' /etc/apache2/sites-available/000-default.conf && \
-    # Disable the other-vhosts-access-log configuration that causes permission issues
-    a2disconf other-vhosts-access-log || true && \
-    # Ensure Apache run directory exists and has correct permissions
-    mkdir -p /var/run/apache2 && \
-    chown -R www-data:www-data /var/run/apache2
-
-# Install system packages and PHP extensions
-RUN set -eux; \
-    # Install essential packages
-    apt-get update && apt-get install -y --no-install-recommends \
+# Update system packages for security
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
         curl \
         sudo \
         gosu \
@@ -61,6 +46,24 @@ RUN set -eux; \
     # Add Quant-Client-IP header to existing remoteip configuration
     echo 'RemoteIPHeader Quant-Client-IP' >> /etc/apache2/conf-available/remoteip.conf && \
     a2enconf remoteip
+
+# Remap www-data to UID/GID 1000 to match EFS access points
+RUN groupmod -g 1000 www-data && \
+    usermod -u 1000 -g 1000 www-data && \
+    # Fix ownership of existing www-data files after UID/GID change
+    find / -user 33 -exec chown www-data {} \; 2>/dev/null || true && \
+    find / -group 33 -exec chgrp www-data {} \; 2>/dev/null || true && \
+    # Configure Apache to log to stdout/stderr 
+    sed -i 's/ErrorLog .*/ErrorLog \/dev\/stderr/' /etc/apache2/apache2.conf && \
+    sed -i 's/CustomLog .*/CustomLog \/dev\/stdout combined/' /etc/apache2/sites-available/000-default.conf && \
+    sed -i 's!ErrorLog.*!ErrorLog /dev/stderr!' /etc/apache2/sites-available/000-default.conf && \
+    # Disable the other-vhosts-access-log configuration that causes permission issues
+    a2disconf other-vhosts-access-log || true && \
+    # Ensure Apache run directory exists and has correct permissions
+    mkdir -p /var/run/apache2 && \
+    chown -R www-data:www-data /var/run/apache2
+
+
 
 # Set PHP configuration
 RUN { \

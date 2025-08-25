@@ -29,7 +29,14 @@ jobs:
       matrix:
         php_version: ['7.4', '8.2', '8.3', '8.4']
         include:
+          - php_version: '7.4'
+            debian_version: 'bullseye'
+          - php_version: '8.2'
+            debian_version: 'trixie'
+          - php_version: '8.3'
+            debian_version: 'trixie'
           - php_version: '8.4'
+            debian_version: 'trixie'
             is_default: true
 
     steps:
@@ -54,8 +61,9 @@ jobs:
           tags: temp-build:latest
           build-args: |
             PHP_VERSION=${{ matrix.php_version }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+            DEBIAN_VERSION=${{ matrix.debian_version }}
+          cache-from: type=gha,scope=php${{ matrix.php_version }}
+          cache-to: type=gha,mode=max,scope=php${{ matrix.php_version }}
 
       - name: Verify PHP version
         id: php-version
@@ -90,12 +98,13 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             PHP_VERSION=${{ matrix.php_version }}
+            DEBIAN_VERSION=${{ matrix.debian_version }}
           cache-from: |
-            type=gha
-            type=registry,ref=ghcr.io/quantcdn-templates/app-apache-php:cache
+            type=gha,scope=php${{ matrix.php_version }}
+            type=registry,ref=ghcr.io/quantcdn-templates/app-apache-php:cache-php${{ matrix.php_version }}
           cache-to: |
-            type=gha,mode=max
-            type=registry,ref=ghcr.io/quantcdn-templates/app-apache-php:cache,mode=max
+            type=gha,mode=max,scope=php${{ matrix.php_version }}
+            type=registry,ref=ghcr.io/quantcdn-templates/app-apache-php:cache-php${{ matrix.php_version }},mode=max
 
       - name: Test container
         run: |

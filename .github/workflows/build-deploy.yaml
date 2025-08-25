@@ -71,10 +71,10 @@ jobs:
           tags: |
             ${{ steps.ecr-endpoint-stripped.outputs.stripped_endpoint }}/${{ secrets.QUANT_ORGANIZATION }}/${{ secrets.QUANT_APPLICATION }}:apache-php${{ steps.vars.outputs.suffix }}
           cache-from: |
-            type=gha
-            type=registry,ref=ghcr.io/quantcdn-templates/app-apache-php:cache
+            type=gha,scope=php8.4
+            type=registry,ref=ghcr.io/quantcdn-templates/app-apache-php:cache-php8.4
           cache-to: |
-            type=gha,mode=max
+            type=gha,mode=max,scope=php8.4
 
       - name: Redeploy environment
         uses: quantcdn/quant-cloud-environment-state-action@v1
