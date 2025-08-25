@@ -6,6 +6,8 @@ FROM php:${PHP_VERSION}-apache-${DEBIAN_VERSION}
 # Update system packages for security
 RUN apt-get update && apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
+        ca-certificates \
+        openssl \
         curl \
         sudo \
         gosu \
@@ -39,6 +41,16 @@ RUN apt-get update && apt-get upgrade -y && \
     pecl install -o -f redis apcu && \
     docker-php-ext-enable redis apcu && \
     rm -rf /tmp/pear && \
+    # Install AWS RDS CA certificates
+    mkdir -p /tmp/rds-certs && \
+    curl -fsSL "https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem" \
+         -o /tmp/rds-certs/rds-ca-cert-bundle.pem && \
+    mkdir -p /opt/rds-ca-certs && \
+    cp /tmp/rds-certs/rds-ca-cert-bundle.pem /opt/rds-ca-certs/rds-ca-cert-bundle.pem && \
+    cp /tmp/rds-certs/rds-ca-cert-bundle.pem /usr/local/share/ca-certificates/rds-ca-cert-bundle.crt && \
+    update-ca-certificates && \
+    rm -rf /tmp/rds-certs && \
+    echo "RDS CA certificates installed successfully" && \
     # Clean up
     rm -rf /var/lib/apt/lists/* && \
     # Enable Apache modules
