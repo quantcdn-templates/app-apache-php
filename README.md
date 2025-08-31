@@ -1,4 +1,4 @@
-# Apache + PHP Application Template
+# Apache + PHP Application Template for Quant Cloud
 
 A production-ready Apache HTTP Server with PHP 8.4 template featuring common extensions, MySQL database support, and Quant integration.
 
@@ -89,8 +89,6 @@ Key environment variables you can configure:
 - `QUANT_SMTP_FROM_DOMAIN` - SMTP domain for configuration
 - `QUANT_SMTP_HOSTNAME` - SMTP hostname override
 
-
-
 ### File Storage
 
 The application mounts your local `src/` directory to `/var/www/html` for development. A persistent volume is available at `/var/www/html/data` for application data.
@@ -99,17 +97,20 @@ The application mounts your local `src/` directory to `/var/www/html` for develo
 
 ### PHP Extensions
 
-The following PHP extensions are pre-installed:
+The following common PHP extensions are pre-installed. Review the "Checking PHP Configuration" section to see all extensions.
 
+- **APCu** - User cache for application-level caching
+- **BCMath** - Arbitrary precision mathematics
+- **Exif** - Read image metadata (EXIF) from photos
 - **GD** - Image processing and manipulation
+- **Imagick** - ImageMagick bindings for advanced image processing
+- **Intl** - Internationalization utilities for locales, formatting, collation
 - **OPcache** - PHP bytecode caching for performance
 - **PDO MySQL** - MySQL database connectivity
 - **PDO PostgreSQL** - PostgreSQL database connectivity
-- **ZIP** - Archive handling
 - **Redis** - Redis client (extension available, no server included)
-- **APCu** - User cache for application-level caching
-- **BCMath** - Arbitrary precision mathematics
 - **Sockets** - Network socket operations
+- **ZIP** - Archive handling
 
 ### Using Composer
 
@@ -270,4 +271,4 @@ docker-compose exec apache-php php -m
 
 ## License
 
-This Apache + PHP application template is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+This template is released under the MIT License. See LICENSE file for details.
