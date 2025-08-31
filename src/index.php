@@ -65,7 +65,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚀 Apache + PHP Template</h1>
+            <h1>🚀 QuantCDN Apache + PHP Template</h1>
             <p>Production-ready Apache HTTP Server with PHP</p>
         </div>
         
@@ -97,18 +97,18 @@
             </div>
 
             <div class="info-box">
-                <h2>🔧 Available Extensions</h2>
-                <p>Common PHP extensions included: 
-                    <strong>GD, OPcache, PDO MySQL, PDO PostgreSQL, ZIP, Redis, APCu, BCMath, Sockets</strong>
+                <h2>🔧 Common Extensions</h2>
+                    APCu, BCMath, Exif, GD, Imagick, OPcache, PDO MySQL, PDO PostgreSQL, Redis, Sockets, ZIP<br/><br/>
+                    <a href="?view=extensions">See all extensions</a>
                 </p>
             </div>
 
             <div style="text-align: center; margin-top: 30px;">
-                <a href="?test=db" class="btn">🗄️ Test Database</a>
-                <a href="?test=extensions" class="btn">🔧 View Extensions</a>
+                <a href="?view=db" class="btn">🗄️ Test Database</a>
+                <a href="?view=extensions" class="btn">🔧 View Extensions</a>
             </div>
 
-            <?php if (isset($_GET['test']) && $_GET['test'] === 'extensions'): ?>
+            <?php if (isset($_GET['view']) && $_GET['view'] === 'extensions'): ?>
                 <div class="info-box" style="margin-top: 30px;">
                     <h2>Loaded PHP Extensions</h2>
                     <div style="columns: 3; column-gap: 20px;">
@@ -124,7 +124,7 @@
                 </div>
             <?php endif; ?>
 
-            <?php if (isset($_GET['test']) && $_GET['test'] === 'db'): ?>
+            <?php if (isset($_GET['view']) && $_GET['view'] === 'db'): ?>
                 <div class="info-box" style="margin-top: 30px;">
                     <h2>Database Connection Test</h2>
                     <?php
