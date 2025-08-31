@@ -98,7 +98,7 @@
 
             <div class="info-box">
                 <h2>🔧 Common Extensions</h2>
-                    APCu, BCMath, Exif, GD, Imagick, OPcache, PDO MySQL, PDO PostgreSQL, Redis, Sockets, ZIP<br/><br/>
+                    APCu, BCMath, GD, Imagick, OPcache, PDO MySQL, PDO PostgreSQL, Redis, Sockets, ZIP<br/><br/>
                     <a href="?view=extensions">See all extensions</a>
                 </p>
             </div>
