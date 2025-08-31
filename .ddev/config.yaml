@@ -1,0 +1,25 @@
+name: app-apache-php
+type: php
+docroot: src
+php_version: "8.4"
+webserver_type: apache-fpm
+xdebug_enabled: false
+database:
+    type: mysql
+    version: "8.4"
+use_dns_when_possible: true
+composer_version: "2"
+# Environment variables to match production setup
+web_environment:
+    - DB_HOST=db
+    - DB_PORT=3306
+    - DB_DATABASE=apache_php
+    - DB_USERNAME=apache_php
+    - DB_PASSWORD=apache_php
+hooks:
+    post-start:
+        - exec: |
+            mysql -uroot -e "CREATE DATABASE IF NOT EXISTS apache_php;"
+            mysql -uroot -e "CREATE USER IF NOT EXISTS 'apache_php'@'%' IDENTIFIED BY 'apache_php';"
+            mysql -uroot -e "GRANT ALL ON apache_php.* TO 'apache_php'@'%'; FLUSH PRIVILEGES;"
+          service: db

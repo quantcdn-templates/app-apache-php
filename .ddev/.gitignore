@@ -1,0 +1,17 @@
+# DDEV-generated files (auto-regenerated, don't commit)
+.ddev-docker-compose-*.yaml
+.webimageBuild/
+.dbimageBuild/
+.homeadditions/
+**/README.txt
+
+# DDEV runtime directories  
+db_snapshots/
+mutagen/
+traefik/
+
+# Keep configuration files (these should be committed)
+!config.yaml
+!docker-compose.*.yaml  
+!php/
+!commands/ 
