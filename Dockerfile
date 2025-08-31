@@ -4,42 +4,52 @@ ARG DEBIAN_VERSION=trixie
 FROM php:${PHP_VERSION}-apache-${DEBIAN_VERSION}
 
 # Update system packages for security
-RUN apt-get update && apt-get upgrade -y && \
+RUN set -ex; \
+    apt-get update && \
+    apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
         ca-certificates \
-        openssl \
         curl \
-        sudo \
-        gosu \
-        vim \
+        default-mysql-client \
+        ghostscript \
         git \
-        unzip \
+        gosu \
+        libavif-dev \
         libfreetype6-dev \
+        libicu-dev \
         libjpeg-dev \
+        libmagickwand-dev \
         libpng-dev \
         libpq-dev \
         libwebp-dev \
         libzip-dev \
-        default-mysql-client \
+        openssl \
+        sudo \
+        unzip \
+        vim \
     && \
     # Configure and install PHP extensions
     docker-php-ext-configure gd \
+        --with-avif \
         --with-freetype \
         --with-jpeg=/usr \
         --with-webp \
     && \
     docker-php-ext-install -j "$(nproc)" \
+        bcmath \
+        exif \
         gd \
+        intl \
+        mysqli \
         opcache \
         pdo_mysql \
         pdo_pgsql \
-        zip \
         sockets \
-        bcmath \
+        zip \
     && \
     # Install PECL extensions  
-    pecl install -o -f redis apcu && \
-    docker-php-ext-enable redis apcu && \
+    pecl install -o -f apcu imagick redis && \
+    docker-php-ext-enable apcu imagick redis && \
     rm -rf /tmp/pear && \
     # Install AWS RDS CA certificates
     mkdir -p /tmp/rds-certs && \
@@ -54,10 +64,36 @@ RUN apt-get update && apt-get upgrade -y && \
     # Clean up
     rm -rf /var/lib/apt/lists/* && \
     # Enable Apache modules
-    a2enmod rewrite headers remoteip && \
+    a2enmod expires headers remoteip rewrite && \
     # Add Quant-Client-IP header to existing remoteip configuration
     echo 'RemoteIPHeader Quant-Client-IP' >> /etc/apache2/conf-available/remoteip.conf && \
-    a2enconf remoteip
+    a2enconf remoteip && \
+    # Verify extensions work correctly
+    out="$(php -r 'exit(0);')"; \
+    [ -z "$out" ]; \
+    err="$(php -r 'exit(0);' 3>&1 1>&2 2>&3)"; \
+    [ -z "$err" ]; \
+    \
+    extDir="$(php -r 'echo ini_get("extension_dir");')"; \
+    [ -d "$extDir" ]; \
+    # Clean up build dependencies
+    apt-mark auto '.*' > /dev/null; \
+    apt-mark manual $(apt-mark showmanual); \
+    ldd "$extDir"/*.so \
+      | awk '/=>/ { so = $(NF-1); if (index(so, "/usr/local/") == 1) { next }; gsub("^/(usr/)?", "", so); printf "*%s\n", so }' \
+      | sort -u \
+      | xargs -r dpkg-query --search \
+      | cut -d: -f1 \
+      | sort -u \
+      | xargs -rt apt-mark manual; \
+    \
+    apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
+    rm -rf /var/lib/apt/lists/*; \
+    \
+    ! { ldd "$extDir"/*.so | grep 'not found'; }; \
+    # Check for PHP extension loading errors
+    err="$(php --version 3>&1 1>&2 2>&3)"; \
+    [ -z "$err" ]
 
 # Remap www-data to UID/GID 1000 to match EFS access points
 RUN groupmod -g 1000 www-data && \
@@ -73,18 +109,34 @@ RUN groupmod -g 1000 www-data && \
     a2disconf other-vhosts-access-log || true && \
     # Ensure Apache run directory exists and has correct permissions
     mkdir -p /var/run/apache2 && \
-    chown -R www-data:www-data /var/run/apache2
-
-
+    chown -R www-data:www-data /var/run/apache2 && \
+    # Fix Apache log directory permissions
+    chown -R www-data:www-data /var/log/apache2
 
 # Set PHP configuration
 RUN { \
-        echo 'opcache.memory_consumption=300'; \
         echo 'opcache.interned_strings_buffer=8'; \
         echo 'opcache.max_accelerated_files=30000'; \
+        echo 'opcache.memory_consumption=300'; \
         echo 'opcache.revalidate_freq=60'; \
     } > /usr/local/etc/php/conf.d/opcache-recommended.ini && \
     echo 'memory_limit = 256M' >> /usr/local/etc/php/conf.d/docker-php-memlimit.ini
+
+# Fix LogFormat for proper client IP logging
+RUN find /etc/apache2 -type f -name '*.conf' -exec sed -ri 's/([[:space:]]*LogFormat[[:space:]]+"[^"]*)%h([^"]*")/\1%a\2/g' '{}' +
+
+# Error logging configuration
+RUN { \
+    echo 'error_reporting = E_ERROR | E_WARNING | E_PARSE | E_CORE_ERROR | E_CORE_WARNING | E_COMPILE_ERROR | E_COMPILE_WARNING | E_RECOVERABLE_ERR
+    echo 'display_errors = Off'; \
+    echo 'display_startup_errors = Off'; \
+    echo 'error_log = /dev/stderr'; \
+    echo 'html_errors = Off'; \
+    echo 'ignore_repeated_errors = On'; \
+    echo 'ignore_repeated_source = Off'; \
+    echo 'log_errors = On'; \
+    echo 'log_errors_max_len = 1024'; \
+} > /usr/local/etc/php/conf.d/error-logging.ini
 
 # Quant Host header override (VirtualHost include approach)
 RUN cat <<'EOF' > /etc/apache2/conf-available/quant-host-snippet.conf
@@ -126,4 +178,4 @@ EXPOSE 80
 
 # Use Quant entrypoints with standard Apache entrypoint
 ENTRYPOINT ["/quant/entrypoints.sh", "docker-php-entrypoint"]
-CMD ["apache2-foreground"] 
+CMD ["apache2-foreground"]
