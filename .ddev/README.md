@@ -15,7 +15,7 @@ This Apache+PHP template includes DDEV configuration for easy local development.
 - **Database**: MySQL 8.4 (matches production)
 
 ### Configuration Matches Production
-- **PHP settings**: Same memory limits as production Dockerfile  
+- **PHP settings**: Same memory limits as production Dockerfile
 - **Environment variables**: Uses `DB_*` variables
 
 ### Development Features
@@ -47,4 +47,4 @@ The DDEV setup automatically provides:
 This DDEV setup mirrors the production Docker configuration:
 - Same PHP version and settings
 - Same environment variable handling
-- Compatible database settings 
+- Compatible database settings
