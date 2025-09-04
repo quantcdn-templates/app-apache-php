@@ -69,14 +69,33 @@ For both deployment options, you can develop locally using either Docker Compose
 
 6. Access your application at `http://localhost`
 
+7. Rebuild the application:
+   ```bash
+   docker-compose up -d --build
+   ```
+
 ### Option 2: DDEV (Recommended for Developers)
 
 1. **Install DDEV**: https://ddev.readthedocs.io/en/stable/users/install/
+
 2. **Start DDEV**:
    ```bash
    ddev start
    ```
+
 3. **Access Site** at the provided DDEV URL
+
+4. **Restart Site**:
+
+   ```bash
+   ddev restart
+   ```
+
+   Or
+
+   ```bash
+   ddev delete -y && ddev start
+   ```
 
 DDEV provides additional developer tools. See `.ddev/README.md` for details.
 
