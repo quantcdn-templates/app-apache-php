@@ -109,9 +109,7 @@ RUN groupmod -g 1000 www-data && \
     a2disconf other-vhosts-access-log || true && \
     # Ensure Apache run directory exists and has correct permissions
     mkdir -p /var/run/apache2 && \
-    chown -R www-data:www-data /var/run/apache2 && \
-    # Fix Apache log directory permissions
-    chown -R www-data:www-data /var/log/apache2
+    chown -R www-data:www-data /var/run/apache2
 
 # Set PHP configuration
 RUN { \
