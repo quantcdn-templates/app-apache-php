@@ -125,7 +125,7 @@ RUN find /etc/apache2 -type f -name '*.conf' -exec sed -ri 's/([[:space:]]*LogFo
 
 # Error logging configuration
 RUN { \
-    echo 'error_reporting = E_ERROR | E_WARNING | E_PARSE | E_CORE_ERROR | E_CORE_WARNING | E_COMPILE_ERROR | E_COMPILE_WARNING | E_RECOVERABLE_ERR
+    echo 'error_reporting = E_ERROR | E_WARNING | E_PARSE | E_CORE_ERROR | E_CORE_WARNING | E_COMPILE_ERROR | E_COMPILE_WARNING | E_RECOVERABLE_ERR'; \
     echo 'display_errors = Off'; \
     echo 'display_startup_errors = Off'; \
     echo 'error_log = /dev/stderr'; \
