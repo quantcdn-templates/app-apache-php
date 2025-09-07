@@ -14,7 +14,6 @@ RUN set -ex; \
         ghostscript \
         git \
         gosu \
-        libavif-dev \
         libfreetype6-dev \
         libicu-dev \
         libjpeg-dev \
@@ -28,12 +27,18 @@ RUN set -ex; \
         unzip \
         vim \
     && \
+    # Install AVIF headers only for PHP >= 8.1 where we enable AVIF in GD (allow failure on unsupported arches/repos)
+    if php -r 'exit(PHP_VERSION_ID >= 80100 ? 0 : 1);'; then \
+        apt-get install -y --no-install-recommends libavif-dev || echo "libavif-dev not available; continuing without AVIF"; \
+    fi; \
+    \
     # Configure and install PHP extensions
-    docker-php-ext-configure gd \
-        --with-avif \
-        --with-freetype \
-        --with-jpeg=/usr \
-        --with-webp \
+    if php -r 'exit(PHP_VERSION_ID >= 80100 ? 0 : 1);' && dpkg -s libavif-dev >/dev/null 2>&1; then \
+        GD_CONFIGURE_OPTIONS="--with-avif --with-freetype --with-jpeg=/usr --with-webp"; \
+    else \
+        GD_CONFIGURE_OPTIONS="--with-freetype --with-jpeg=/usr --with-webp"; \
+    fi; \
+    docker-php-ext-configure gd $GD_CONFIGURE_OPTIONS \
     && \
     docker-php-ext-install -j "$(nproc)" \
         bcmath \
@@ -47,8 +52,12 @@ RUN set -ex; \
         sockets \
         zip \
     && \
-    # Install PECL extensions  
-    pecl install -o -f apcu imagick redis && \
+    # Install PECL extensions (pin imagick on older PHP)
+    if php -r 'exit(PHP_VERSION_ID < 80000 ? 0 : 1);'; then \
+        pecl install -o -f apcu imagick-3.7.0 redis; \
+    else \
+        pecl install -o -f apcu imagick redis; \
+    fi; \
     docker-php-ext-enable apcu imagick redis && \
     rm -rf /tmp/pear && \
     # Install AWS RDS CA certificates
@@ -77,8 +86,9 @@ RUN set -ex; \
     extDir="$(php -r 'echo ini_get("extension_dir");')"; \
     [ -d "$extDir" ]; \
     # Clean up build dependencies
+    savedAptMark="$(apt-mark showmanual)"; \
     apt-mark auto '.*' > /dev/null; \
-    apt-mark manual $(apt-mark showmanual); \
+    if [ -n "$savedAptMark" ]; then apt-mark manual $savedAptMark; fi; \
     ldd "$extDir"/*.so \
       | awk '/=>/ { so = $(NF-1); if (index(so, "/usr/local/") == 1) { next }; gsub("^/(usr/)?", "", so); printf "*%s\n", so }' \
       | sort -u \
@@ -87,7 +97,7 @@ RUN set -ex; \
       | sort -u \
       | xargs -rt apt-mark manual; \
     \
-    apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
+    apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false || true; \
     rm -rf /var/lib/apt/lists/*; \
     \
     ! { ldd "$extDir"/*.so | grep 'not found'; }; \
