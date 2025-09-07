@@ -71,7 +71,8 @@ For both deployment options, you can develop locally using either Docker Compose
 
 7. Rebuild the application:
    ```bash
-   docker-compose up -d --build
+   docker compose build --no-cache
+   docker-compose up -d
    ```
 
 ### Option 2: DDEV (Recommended for Developers)
