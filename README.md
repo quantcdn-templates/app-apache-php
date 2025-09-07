@@ -71,8 +71,15 @@ For both deployment options, you can develop locally using either Docker Compose
 
 7. Rebuild the application:
    ```bash
-   docker compose build --no-cache
+   docker-compose build --no-cache
    docker-compose up -d
+   ```
+
+8. Rebuild the application with specific PHP and Debian versions:
+   ```bash
+   docker-compose build --no-cache --progress=plain --build-arg PHP_VERSION=7.4 --build-arg DEBIAN_VERSION=bullseye
+   docker-compose up -d
+   docker-compose exec apache-php php -v
    ```
 
 ### Option 2: DDEV (Recommended for Developers)
