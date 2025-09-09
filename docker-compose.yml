@@ -1,6 +1,6 @@
 services:
   apache-php:
-    image: ghcr.io/quantcdn-templates/app-apache-php:latest
+    image: ghcr.io/quantcdn-templates/app-apache-php:latest # can use 7.4, 8.2, 8.3, 8.4, latest
     build: .
     restart: unless-stopped
     ports:
