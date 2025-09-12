@@ -23,7 +23,6 @@ RUN set -ex; \
         libwebp-dev \
         libzip-dev \
         openssl \
-        sendmail \
         sudo \
         unzip \
         vim \
