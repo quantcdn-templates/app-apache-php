@@ -1,4 +1,4 @@
-# Apache + PHP Application Template
+# Apache + PHP Application Template for Quant Cloud
 
 A production-ready Apache HTTP Server with PHP 8.4 template featuring common extensions, MySQL database support, and Quant integration.
 
@@ -24,6 +24,10 @@ A production-ready Apache HTTP Server with PHP 8.4 template featuring common ext
 - Git
 
 ### Local Development
+
+For both deployment options, you can develop locally using either Docker Compose or DDEV:
+
+### Option 1: Docker Compose
 
 1. Clone this template:
    ```bash
@@ -65,6 +69,44 @@ A production-ready Apache HTTP Server with PHP 8.4 template featuring common ext
 
 6. Access your application at `http://localhost`
 
+7. Rebuild the application:
+   ```bash
+   docker-compose build --no-cache
+   docker-compose up -d
+   ```
+
+8. Rebuild the application with specific PHP and Debian versions:
+   ```bash
+   docker-compose build --no-cache --progress=plain --build-arg PHP_VERSION=7.4 --build-arg DEBIAN_VERSION=bullseye
+   docker-compose up -d
+   docker-compose exec apache-php php -v
+   ```
+
+### Option 2: DDEV (Recommended for Developers)
+
+1. **Install DDEV**: https://ddev.readthedocs.io/en/stable/users/install/
+
+2. **Start DDEV**:
+   ```bash
+   ddev start
+   ```
+
+3. **Access Site** at the provided DDEV URL
+
+4. **Restart Site**:
+
+   ```bash
+   ddev restart
+   ```
+
+   Or
+
+   ```bash
+   ddev delete -y && ddev start
+   ```
+
+DDEV provides additional developer tools. See `.ddev/README.md` for details.
+
 ## Configuration
 
 ### Environment Variables
@@ -89,8 +131,6 @@ Key environment variables you can configure:
 - `QUANT_SMTP_FROM_DOMAIN` - SMTP domain for configuration
 - `QUANT_SMTP_HOSTNAME` - SMTP hostname override
 
-
-
 ### File Storage
 
 The application mounts your local `src/` directory to `/var/www/html` for development. A persistent volume is available at `/var/www/html/data` for application data.
@@ -99,46 +139,74 @@ The application mounts your local `src/` directory to `/var/www/html` for develo
 
 ### PHP Extensions
 
-The following PHP extensions are pre-installed:
+The following common PHP extensions are pre-installed. Review the "Checking PHP Configuration" section to see all extensions.
 
+- **APCu** - User cache for application-level caching
+- **BCMath** - Arbitrary precision mathematics
+- **Exif** - Read image metadata (EXIF) from photos
 - **GD** - Image processing and manipulation
+- **Imagick** - ImageMagick bindings for advanced image processing
+- **Intl** - Internationalization utilities for locales, formatting, collation
 - **OPcache** - PHP bytecode caching for performance
 - **PDO MySQL** - MySQL database connectivity
 - **PDO PostgreSQL** - PostgreSQL database connectivity
-- **ZIP** - Archive handling
 - **Redis** - Redis client (extension available, no server included)
-- **APCu** - User cache for application-level caching
-- **BCMath** - Arbitrary precision mathematics
 - **Sockets** - Network socket operations
+- **ZIP** - Archive handling
 
 ### Using Composer
 
 Install PHP packages using Composer:
 
+**Docker Compose**
 ```bash
 docker-compose exec apache-php composer require vendor/package
+```
+
+**DDEV**
+```bash
+ddev composer require vendor/package
 ```
 
 ### Database Access
 
 Access the MySQL database directly:
 
+**Docker Compose**
 ```bash
 docker-compose exec db mysql -u apache_php -p apache_php
 ```
 
+**DDEV**
+```bash
+ddev mysql -u apache_php -p apache_php
+```
+
 ### Logs
+
 
 View application logs:
 
+**Docker Compose**
 ```bash
 docker-compose logs -f apache-php
 ```
 
+**DDEV**
+```bash
+ddev logs -s web -f
+```
+
 View database logs:
 
+**Docker Compose**
 ```bash
 docker-compose logs -f db
+```
+
+**DDEV**
+```bash
+ddev logs -s db -f
 ```
 
 ## Application Structure
@@ -241,13 +309,27 @@ The workflow will automatically build your Docker image and deploy it to your Qu
 ### Database Connection Issues
 
 1. Ensure the database container is running:
+
+   **Docker Compose**
    ```bash
    docker-compose ps
    ```
+   
+   **DDEV**
+   ```bash
+   ddev describe
+   ```
 
 2. Check database logs:
+
+   **Docker Compose**
    ```bash
    docker-compose logs db
+   ```
+
+   **DDEV**
+   ```bash
+   ddev logs -s db
    ```
 
 3. Verify database credentials in your environment configuration.
@@ -256,22 +338,59 @@ The workflow will automatically build your Docker image and deploy it to your Qu
 
 If you encounter file permission issues with mounted volumes:
 
+**Docker Compose**
 ```bash
 docker-compose exec apache-php chown -R www-data:www-data /var/www/html
+```
+
+**DDEV**
+```bash
+ddev exec chown -R www-data:www-data /var/www/html
 ```
 
 ### Checking PHP Configuration
 
 View PHP configuration:
+
+**Docker Compose**
 ```bash
 docker-compose exec apache-php php -i
 ```
+**DDEV**
+```bash
+ddev exec php -i
+```
 
 View loaded extensions:
+
+**Docker Compose**
 ```bash
 docker-compose exec apache-php php -m
 ```
 
+**DDEV**
+```bash
+ddev exec php -m
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test with both local development and Quant Cloud deployment
+5. Submit a pull request
+
+## Reporting a Vulnerability
+
+Please email security@quantcdn.io with details. Do not open a public issue for security vulnerabilities.
+
 ## License
 
-This Apache + PHP application template is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+This template is released under the MIT License. See LICENSE file for details.
+
+## Support
+
+For issues and questions:
+- GitHub Issues: [Create an issue](https://github.com/quantcdn-templates/app-apache-php/issues)
+- Documentation: [Quant Cloud Documentation](https://docs.quantcdn.io/)

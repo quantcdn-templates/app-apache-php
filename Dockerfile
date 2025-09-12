@@ -4,42 +4,61 @@ ARG DEBIAN_VERSION=trixie
 FROM php:${PHP_VERSION}-apache-${DEBIAN_VERSION}
 
 # Update system packages for security
-RUN apt-get update && apt-get upgrade -y && \
+RUN set -ex; \
+    apt-get update && \
+    apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
         ca-certificates \
-        openssl \
         curl \
-        sudo \
-        gosu \
-        vim \
+        default-mysql-client \
+        ghostscript \
         git \
-        unzip \
+        gosu \
         libfreetype6-dev \
+        libicu-dev \
         libjpeg-dev \
+        libmagickwand-dev \
         libpng-dev \
         libpq-dev \
         libwebp-dev \
         libzip-dev \
-        default-mysql-client \
+        openssl \
+        sudo \
+        unzip \
+        vim \
     && \
+    # Install AVIF headers only for PHP >= 8.1 where we enable AVIF in GD (allow failure on unsupported arches/repos)
+    if php -r 'exit(PHP_VERSION_ID >= 80100 ? 0 : 1);'; then \
+        apt-get install -y --no-install-recommends libavif-dev || echo "libavif-dev not available; continuing without AVIF"; \
+    fi; \
+    \
     # Configure and install PHP extensions
-    docker-php-ext-configure gd \
-        --with-freetype \
-        --with-jpeg=/usr \
-        --with-webp \
+    if php -r 'exit(PHP_VERSION_ID >= 80100 ? 0 : 1);' && dpkg -s libavif-dev >/dev/null 2>&1; then \
+        GD_CONFIGURE_OPTIONS="--with-avif --with-freetype --with-jpeg=/usr --with-webp"; \
+    else \
+        GD_CONFIGURE_OPTIONS="--with-freetype --with-jpeg=/usr --with-webp"; \
+    fi; \
+    docker-php-ext-configure gd $GD_CONFIGURE_OPTIONS \
     && \
     docker-php-ext-install -j "$(nproc)" \
+        bcmath \
+        exif \
         gd \
+        intl \
+        mysqli \
         opcache \
         pdo_mysql \
         pdo_pgsql \
-        zip \
         sockets \
-        bcmath \
+        zip \
     && \
-    # Install PECL extensions  
-    pecl install -o -f redis apcu && \
-    docker-php-ext-enable redis apcu && \
+    # Install PECL extensions (pin imagick on older PHP)
+    if php -r 'exit(PHP_VERSION_ID < 80000 ? 0 : 1);'; then \
+        pecl install -o -f apcu imagick-3.7.0 redis; \
+    else \
+        pecl install -o -f apcu imagick redis; \
+    fi; \
+    docker-php-ext-enable apcu imagick redis && \
     rm -rf /tmp/pear && \
     # Install AWS RDS CA certificates
     mkdir -p /tmp/rds-certs && \
@@ -54,10 +73,37 @@ RUN apt-get update && apt-get upgrade -y && \
     # Clean up
     rm -rf /var/lib/apt/lists/* && \
     # Enable Apache modules
-    a2enmod rewrite headers remoteip && \
+    a2enmod expires headers remoteip rewrite && \
     # Add Quant-Client-IP header to existing remoteip configuration
     echo 'RemoteIPHeader Quant-Client-IP' >> /etc/apache2/conf-available/remoteip.conf && \
-    a2enconf remoteip
+    a2enconf remoteip && \
+    # Verify extensions work correctly
+    out="$(php -r 'exit(0);')"; \
+    [ -z "$out" ]; \
+    err="$(php -r 'exit(0);' 3>&1 1>&2 2>&3)"; \
+    [ -z "$err" ]; \
+    \
+    extDir="$(php -r 'echo ini_get("extension_dir");')"; \
+    [ -d "$extDir" ]; \
+    # Clean up build dependencies
+    savedAptMark="$(apt-mark showmanual)"; \
+    apt-mark auto '.*' > /dev/null; \
+    if [ -n "$savedAptMark" ]; then apt-mark manual $savedAptMark; fi; \
+    ldd "$extDir"/*.so \
+      | awk '/=>/ { so = $(NF-1); if (index(so, "/usr/local/") == 1) { next }; gsub("^/(usr/)?", "", so); printf "*%s\n", so }' \
+      | sort -u \
+      | xargs -r dpkg-query --search \
+      | cut -d: -f1 \
+      | sort -u \
+      | xargs -rt apt-mark manual; \
+    \
+    apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false || true; \
+    rm -rf /var/lib/apt/lists/*; \
+    \
+    ! { ldd "$extDir"/*.so | grep 'not found'; }; \
+    # Check for PHP extension loading errors
+    err="$(php --version 3>&1 1>&2 2>&3)"; \
+    [ -z "$err" ]
 
 # Remap www-data to UID/GID 1000 to match EFS access points
 RUN groupmod -g 1000 www-data && \
@@ -75,16 +121,30 @@ RUN groupmod -g 1000 www-data && \
     mkdir -p /var/run/apache2 && \
     chown -R www-data:www-data /var/run/apache2
 
-
-
 # Set PHP configuration
 RUN { \
-        echo 'opcache.memory_consumption=300'; \
         echo 'opcache.interned_strings_buffer=8'; \
         echo 'opcache.max_accelerated_files=30000'; \
+        echo 'opcache.memory_consumption=300'; \
         echo 'opcache.revalidate_freq=60'; \
     } > /usr/local/etc/php/conf.d/opcache-recommended.ini && \
     echo 'memory_limit = 256M' >> /usr/local/etc/php/conf.d/docker-php-memlimit.ini
+
+# Fix LogFormat for proper client IP logging
+RUN find /etc/apache2 -type f -name '*.conf' -exec sed -ri 's/([[:space:]]*LogFormat[[:space:]]+"[^"]*)%h([^"]*")/\1%a\2/g' '{}' +
+
+# Error logging configuration
+RUN { \
+    echo 'error_reporting = E_ERROR | E_WARNING | E_PARSE | E_CORE_ERROR | E_CORE_WARNING | E_COMPILE_ERROR | E_COMPILE_WARNING | E_RECOVERABLE_ERR'; \
+    echo 'display_errors = Off'; \
+    echo 'display_startup_errors = Off'; \
+    echo 'error_log = /dev/stderr'; \
+    echo 'html_errors = Off'; \
+    echo 'ignore_repeated_errors = On'; \
+    echo 'ignore_repeated_source = Off'; \
+    echo 'log_errors = On'; \
+    echo 'log_errors_max_len = 1024'; \
+} > /usr/local/etc/php/conf.d/error-logging.ini
 
 # Quant Host header override (VirtualHost include approach)
 RUN cat <<'EOF' > /etc/apache2/conf-available/quant-host-snippet.conf
