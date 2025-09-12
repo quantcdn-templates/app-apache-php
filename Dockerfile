@@ -105,9 +105,8 @@ RUN sed -i '/DocumentRoot \/var\/www\/html/a\\n\t# Quant Host header override\n\
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/
 
 # Include Quant config include
-COPY quant/ /quant/
-RUN chmod +x /quant/entrypoints.sh && \
-    if [ -d /quant/entrypoints ]; then chmod +x /quant/entrypoints/*; fi
+COPY quant/entrypoints/ /quant-entrypoint.d/
+RUN chmod +x /quant-entrypoint.d/*
 
 # Copy Quant PHP configuration files (allows users to add custom PHP configs)
 COPY quant/php.ini.d/* /usr/local/etc/php/conf.d/
@@ -125,5 +124,5 @@ RUN chown -R www-data:www-data /var/www/html
 EXPOSE 80
 
 # Use Quant entrypoints with standard Apache entrypoint
-ENTRYPOINT ["/quant/entrypoints.sh", "docker-php-entrypoint"]
+ENTRYPOINT ["docker-php-entrypoint"]
 CMD ["apache2-foreground"] 

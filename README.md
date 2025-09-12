@@ -221,6 +221,10 @@ When you fork this repository, you can use the included GitHub Actions workflow 
    - Push to `develop` → deploys to staging environment
    - Push to `main` → deploys to production environment
    - Create tags → deploys tagged versions
+4. **Remove the CI pipeline** that builds public images:
+   - Delete `.github/workflows/ci.yml` (only relevant for Quant built public images)
+5. **Configure Quant Cloud application** to use your private images:
+   - Ensure your application configuration in Quant Cloud is set to use the internal image source
 
 The workflow will automatically build your Docker image and deploy it to your Quant Cloud application.
 

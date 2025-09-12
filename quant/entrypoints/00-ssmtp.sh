@@ -10,7 +10,10 @@ if [ -n "$QUANT_SMTP_HOST" ] && [ "$QUANT_SMTP_RELAY_ENABLED" != "true" ]; then
         apt-get update && apt-get install -y --no-install-recommends ssmtp
     fi
     
-    # Ensure we can write to /etc/ssmtp directory
+    # Ensure we can write to /etc/ssmtp directory and it exists
+    if [ ! -d /etc/ssmtp ]; then
+        mkdir -p /etc/ssmtp
+    fi
     chmod 755 /etc/ssmtp
     
     # Configure ssmtp
