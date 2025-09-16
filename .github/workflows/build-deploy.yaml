@@ -39,7 +39,7 @@ jobs:
           platforms: linux/arm64
           push: true
           tags: |
-            ${{ steps.init.outputs.stripped_endpoint }}/${{ secrets.QUANT_ORGANIZATION }}/${{ steps.init.outputs.quant_application }}:${{ steps.init.outputs.image_suffix_clean }}
+            ${{ steps.init.outputs.stripped_endpoint }}/${{ secrets.QUANT_ORGANIZATION }}/${{ steps.init.outputs.quant_application }}:apache-php-${{ steps.init.outputs.image_suffix_clean }}
           cache-from: type=gha,scope=php8.4
           cache-to: type=gha,mode=max,scope=php8.4
 
