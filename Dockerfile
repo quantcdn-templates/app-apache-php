@@ -174,6 +174,9 @@ COPY quant/php.ini.d/* /usr/local/etc/php/conf.d/
 # Set working directory
 WORKDIR /var/www/html
 
+# Copy default source files to template location (for copying when /var/www/html is mounted)
+COPY src/ /opt/default-src/
+
 # Copy application source code
 COPY src/ /var/www/html/
 
