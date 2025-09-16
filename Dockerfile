@@ -121,30 +121,14 @@ RUN groupmod -g 1000 www-data && \
     mkdir -p /var/run/apache2 && \
     chown -R www-data:www-data /var/run/apache2
 
-# Set PHP configuration
-RUN { \
-        echo 'opcache.interned_strings_buffer=8'; \
-        echo 'opcache.max_accelerated_files=30000'; \
-        echo 'opcache.memory_consumption=300'; \
-        echo 'opcache.revalidate_freq=60'; \
-    } > /usr/local/etc/php/conf.d/opcache-recommended.ini && \
-    echo 'memory_limit = 256M' >> /usr/local/etc/php/conf.d/docker-php-memlimit.ini
+# PHP configuration is handled via quant/php.ini.d/ files:
+# - 96-memory.ini - Memory limits
+# - 97-opcache.ini - OPcache configuration
+# - 98-upload-limits.ini - Upload/POST limits  
+# - 99-quant-logging.ini - Error reporting and logging
 
 # Fix LogFormat for proper client IP logging
 RUN find /etc/apache2 -type f -name '*.conf' -exec sed -ri 's/([[:space:]]*LogFormat[[:space:]]+"[^"]*)%h([^"]*")/\1%a\2/g' '{}' +
-
-# Error logging configuration
-RUN { \
-    echo 'error_reporting = E_ERROR | E_WARNING | E_PARSE | E_CORE_ERROR | E_CORE_WARNING | E_COMPILE_ERROR | E_COMPILE_WARNING | E_RECOVERABLE_ERR'; \
-    echo 'display_errors = Off'; \
-    echo 'display_startup_errors = Off'; \
-    echo 'error_log = /dev/stderr'; \
-    echo 'html_errors = Off'; \
-    echo 'ignore_repeated_errors = On'; \
-    echo 'ignore_repeated_source = Off'; \
-    echo 'log_errors = On'; \
-    echo 'log_errors_max_len = 1024'; \
-} > /usr/local/etc/php/conf.d/error-logging.ini
 
 # Quant Host header override (VirtualHost include approach)
 RUN cat <<'EOF' > /etc/apache2/conf-available/quant-host-snippet.conf

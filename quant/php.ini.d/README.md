@@ -4,6 +4,9 @@ This directory contains PHP configuration files that are automatically copied to
 
 ## Included Files
 
+- **96-memory.ini** - Memory limits configuration (256M default)
+- **97-opcache.ini** - OPcache performance settings for production
+- **98-upload-limits.ini** - Upload/POST size limits and execution timeouts  
 - **99-quant-logging.ini** - Suppresses PHP warnings and notices while preserving fatal errors
 
 ## Adding Custom PHP Configuration
