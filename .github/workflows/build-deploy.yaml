@@ -10,6 +10,11 @@ on:
     tags:
       - '*'
 
+env:
+  # Customize these values for your fork
+  APP_NAME: quantcdn-templates
+  ENV_NAME: ${{ github.event.repository.name }}
+
 concurrency:
   group: build-and-push-${{ github.ref }}
   cancel-in-progress: true
@@ -31,7 +36,8 @@ jobs:
         with:
           quant_organization: ${{ secrets.QUANT_ORGANIZATION }}
           quant_api_key: ${{ secrets.QUANT_API_KEY }}
-          quant_application: quantcdn-templates
+          quant_application: ${{ env.APP_NAME }}
+          environment_name_override: ${{ env.ENV_NAME }}
 
       - name: Build and push Apache+PHP image
         uses: docker/build-push-action@v5
@@ -40,10 +46,10 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ${{ steps.init.outputs.stripped_endpoint }}/${{ secrets.QUANT_ORGANIZATION }}/${{ secrets.QUANT_APPLICATION }}:apache-php${{ steps.init.outputs.image_suffix }}
+            ${{ steps.init.outputs.stripped_endpoint }}/${{ secrets.QUANT_ORGANIZATION }}/${{ env.APP_NAME }}:${{ env.ENV_NAME }}${{ steps.init.outputs.image_suffix }}
           cache-from: |
             type=gha,scope=php8.4
-            type=registry,ref=ghcr.io/quantcdn-templates/app-apache-php:cache-php8.4
+            type=registry,ref=ghcr.io/${{ env.APP_NAME }}/${{ env.ENV_NAME }}:cache-php8.4
           cache-to: |
             type=gha,mode=max,scope=php8.4
 
@@ -54,7 +60,7 @@ jobs:
           api_key: ${{ secrets.QUANT_API_KEY }}
           organization: ${{ secrets.QUANT_ORGANIZATION }}
           app_name: ${{ steps.init.outputs.quant_application }}
-          environment_name: apache-php-${{ steps.init.outputs.environment_name }}
+          environment_name: ${{ env.ENV_NAME }}${{ steps.init.outputs.image_suffix }}
           from_environment: production
           image_suffix: ${{ steps.init.outputs.image_suffix_clean }}
 
@@ -65,5 +71,5 @@ jobs:
           api_key: ${{ secrets.QUANT_API_KEY }}
           organization: ${{ secrets.QUANT_ORGANIZATION }}
           application: ${{ steps.init.outputs.quant_application }}
-          environment: apache-php-${{ steps.init.outputs.environment_name }}
+          environment: ${{ env.ENV_NAME }}${{ steps.init.outputs.image_suffix }}
           action: redeploy
