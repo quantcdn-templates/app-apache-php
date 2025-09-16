@@ -65,8 +65,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚀 QuantCDN Apache + PHP Template</h1>
-            <p>Production-ready Apache HTTP Server with PHP</p>
+            <h1>Apache + PHP Template</h1>
+            <p>Quant Cloud ready Apache HTTP Server with PHP</p>
         </div>
         
         <div class="content">
