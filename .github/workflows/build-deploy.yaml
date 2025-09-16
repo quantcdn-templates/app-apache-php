@@ -26,7 +26,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Initialize Quant Cloud
-        uses: quantcdn/quant-cloud-init-action@v1.1.4
+        uses: quantcdn/quant-cloud-init-action@v1.1.5
         id: init
         with:
           quant_organization: ${{ secrets.QUANT_ORGANIZATION }}
@@ -40,6 +40,8 @@ jobs:
           push: true
           tags: |
             ${{ steps.init.outputs.stripped_endpoint }}/${{ secrets.QUANT_ORGANIZATION }}/${{ steps.init.outputs.quant_application }}:${{ steps.init.outputs.image_suffix_clean }}
+          cache-from: type=gha,scope=php8.4
+          cache-to: type=gha,mode=max,scope=php8.4
 
       - name: Create environment if it doesn't exist
         if: ${{ !startsWith(github.ref, 'refs/tags/') && steps.init.outputs.environment_exists == 'false' }}
