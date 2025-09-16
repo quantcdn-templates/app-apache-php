@@ -2,6 +2,13 @@
 
 # Copy default index.php if no index file exists in /var/www/html/
 # This helps when users mount their own code but don't have an index file yet
+# Set COPY_DEFAULT_INDEX=true to enable this behavior
+
+# Skip if not explicitly enabled (allows derived images to disable this)
+if [ "$COPY_DEFAULT_INDEX" != "true" ]; then
+    echo "Default index copy disabled (set COPY_DEFAULT_INDEX=true to enable)"
+    exit 0
+fi
 
 echo "Checking for index file in /var/www/html/..."
 

@@ -5,6 +5,9 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+    environment:
+      # Enable default index.php copy when mounting empty directories
+      - COPY_DEFAULT_INDEX=true
     volumes:
       # Mount local source code for development (overrides container's src/)
       - ./src:/var/www/html
