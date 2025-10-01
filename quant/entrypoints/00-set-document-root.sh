@@ -21,6 +21,9 @@ sed -i "s|DocumentRoot /var/www/html|DocumentRoot ${NEW_DOC_ROOT}|g" /etc/apache
 # Update Directory directive in apache2.conf
 sed -i "s|<Directory /var/www/>|<Directory ${PARENT_DIR}/>|g" /etc/apache2/apache2.conf
 
+# Update Directory directive in docker-php.conf (for AllowOverride All)
+sed -i "s|<Directory /var/www/>|<Directory ${PARENT_DIR}/>|g" /etc/apache2/conf-available/docker-php.conf
+
 # Create directory if it doesn't exist
 mkdir -p "$NEW_DOC_ROOT"
 
