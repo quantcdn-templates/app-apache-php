@@ -1,21 +1,22 @@
 ; PHP Upload Configuration
 ; Increase upload limits for better file handling
+; Configurable via environment variables
 
 ; Maximum allowed size for uploaded files
-upload_max_filesize = 128M
+upload_max_filesize = ${PHP_UPLOAD_MAX_FILESIZE}
 
 ; Maximum allowed size for POST data
 ; This must be larger than upload_max_filesize
-post_max_size = 150M
+post_max_size = ${PHP_POST_MAX_SIZE}
 
 ; Maximum number of files that can be uploaded simultaneously
-max_file_uploads = 50
+max_file_uploads = ${PHP_MAX_FILE_UPLOADS}
 
 ; Maximum input variables (for large forms)
-max_input_vars = 3000
+max_input_vars = ${PHP_MAX_INPUT_VARS}
 
 ; Maximum execution time for uploads (in seconds)
-max_execution_time = 300
+max_execution_time = ${PHP_MAX_EXECUTION_TIME}
 
 ; Maximum input time for uploads (in seconds)  
-max_input_time = 300
+max_input_time = ${PHP_MAX_INPUT_TIME}

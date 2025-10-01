@@ -11,6 +11,7 @@ RUN set -ex; \
         ca-certificates \
         curl \
         default-mysql-client \
+        gettext \
         ghostscript \
         git \
         gosu \
@@ -148,7 +149,7 @@ RUN sed -i '/DocumentRoot \/var\/www\/html/a\\n\t# Quant Host header override\n\
 # Install Composer for PHP dependency management
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/
 
-# Include Quant config include
+# Include Quant config include (includes document root configuration)
 COPY quant/entrypoints/ /quant-entrypoint.d/
 RUN chmod +x /quant-entrypoint.d/*
 
