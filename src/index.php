@@ -88,6 +88,10 @@
                     <span>Server Name:</span>
                     <span class="status-value"><?php echo $_SERVER['SERVER_NAME'] ?? 'Unknown'; ?></span>
                 </div>
+                <div class="status-item">
+                    <span>Host Header:</span>
+                    <span class="status-value"><?php echo $_SERVER['HTTP_HOST'] ?? 'Unknown'; ?></span>
+                </div>
                 <?php if (function_exists('opcache_get_status')): ?>
                 <div class="status-item">
                     <span>OPcache:</span>

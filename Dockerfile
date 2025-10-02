@@ -135,10 +135,15 @@ RUN find /etc/apache2 -type f -name '*.conf' -exec sed -ri 's/([[:space:]]*LogFo
 RUN cat <<'EOF' > /etc/apache2/conf-available/quant-host-snippet.conf
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    # Only accept well-formed hosts (optional port)
+    # Priority 1: Check HTTP header Quant-Orig-Host (only accept well-formed hosts)
     RewriteCond %{HTTP:Quant-Orig-Host} ^([A-Za-z0-9.-]+(?::[0-9]+)?)$ [NC]
     RewriteRule ^ - [E=QUANT_HOST:%1]
+    # Priority 2: If header not set, check env var QUANT_ORIG_HOST
+    RewriteCond %{ENV:QUANT_HOST} ^$
+    RewriteCond %{ENV:QUANT_ORIG_HOST} ^([A-Za-z0-9.-]+(?::[0-9]+)?)$ [NC]
+    RewriteRule ^ - [E=QUANT_HOST:%1]
 </IfModule>
+# Only override Host header if QUANT_HOST was set by one of the rules above
 RequestHeader set Host "%{QUANT_HOST}e" env=QUANT_HOST
 EOF
 
