@@ -7,6 +7,7 @@ on:
     branches:
       - develop
       - main
+      - feature/*
     tags:
       - '*'
 
@@ -43,7 +44,7 @@ jobs:
           cache-from: type=gha,scope=php8.4
           cache-to: type=gha,mode=max,scope=php8.4
 
-      - name: Create environment if it doesn't exist
+      - name: Create environment from production if it doesn't exist
         if: ${{ !startsWith(github.ref, 'refs/tags/') && steps.init.outputs.environment_exists == 'false' }}
         uses: quantcdn/quant-cloud-environment-action@v1.2.1
         with:
@@ -54,12 +55,27 @@ jobs:
           from_environment: production
           image_suffix: ${{ steps.init.outputs.image_suffix_clean }}
 
-      - name: Redeploy existing environment
-        if: ${{ !startsWith(github.ref, 'refs/tags/') && steps.init.outputs.environment_exists == 'true' }}
-        uses: quantcdn/quant-cloud-environment-state-action@v1
+      - name: Wait for environment creation to complete
+        if: ${{ !startsWith(github.ref, 'refs/tags/') && steps.init.outputs.environment_exists == 'false' }}
+        run: sleep 120
+
+      - name: Translate docker-compose.yml
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: quantcdn/quant-cloud-compose-action@v1
+        id: compose
         with:
           api_key: ${{ secrets.QUANT_API_KEY }}
           organization: ${{ secrets.QUANT_ORGANIZATION }}
-          application: ${{ steps.init.outputs.quant_application }}
-          environment: ${{ steps.init.outputs.environment_name }}
-          action: redeploy
+          compose_file: docker-compose.yml
+          image_suffix: ${{ steps.init.outputs.image_suffix_clean }}
+
+      - name: Apply docker-compose updates to environment
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: quantcdn/quant-cloud-environment-action@v1.2.1
+        with:
+          api_key: ${{ secrets.QUANT_API_KEY }}
+          organization: ${{ secrets.QUANT_ORGANIZATION }}
+          app_name: ${{ steps.init.outputs.quant_application }}
+          environment_name: ${{ steps.init.outputs.environment_name }}
+          operation: update
+          compose_spec: ${{ steps.compose.outputs.translated_compose }}
