@@ -1,6 +1,8 @@
 services:
   apache-php:
     image: ghcr.io/quantcdn-templates/app-apache-php:latest # can use 7.4, 8.2, 8.3, 8.4, latest
+    labels:
+      quant.image: internal # Use internal image rather than ghcr
     build: .
     restart: unless-stopped
     ports:
