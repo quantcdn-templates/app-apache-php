@@ -1,5 +1,10 @@
 # This workflow is an example of how you can build and push this codebase to Quant Cloud.
 # Use this as a starting point for your own workflow if you are forking this repository.
+#
+# Runner Configuration:
+# - Set RUNNER_TYPE variable to 'ubuntu-24.04-arm' for ARM runners (quantcdn-templates org)
+# - Defaults to 'ubuntu-latest' (x86) for forks and private repos
+# - Set BUILD_PLATFORM variable to 'linux/arm64' or 'linux/amd64' to match your runner
 name: Build and Push Apache+PHP to Quant Cloud
 
 on:
@@ -16,7 +21,7 @@ concurrency:
 
 jobs:
   build-and-push:
-    runs-on: ubuntu-24.04-arm
+    runs-on: ${{ vars.RUNNER_TYPE || 'ubuntu-latest' }}
 
     steps:
       - name: Checkout code
@@ -36,7 +41,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: linux/arm64
+          platforms: ${{ vars.BUILD_PLATFORM || 'linux/amd64' }}
           push: true
           tags: |
             ${{ steps.init.outputs.stripped_endpoint }}/${{ secrets.QUANT_ORGANIZATION }}/${{ steps.init.outputs.quant_application }}:apache-php-${{ steps.init.outputs.image_suffix_clean }}

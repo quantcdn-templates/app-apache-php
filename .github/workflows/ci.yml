@@ -2,6 +2,9 @@
 # It creates the public, default images that can be deployed directly to Quant Cloud.
 # If you wish to customize, you can fork this repository, make modifications, and then
 # use the "build-deploy.yaml" workflow to build and push your own images to Quant Cloud.
+#
+# NOTE: This workflow only runs for the quantcdn-templates organization.
+# If you've forked this repo, this workflow will be skipped automatically.
 name: Build and Publish Apache+PHP Images
 
 on:
@@ -25,7 +28,9 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04-arm
+    # Only run for quantcdn-templates organization
+    if: github.repository_owner == 'quantcdn-templates'
+    runs-on: ${{ vars.RUNNER_TYPE || 'ubuntu-latest' }}
     permissions:
       contents: read
       packages: write
