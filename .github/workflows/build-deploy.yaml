@@ -1,10 +1,11 @@
 # This workflow is an example of how you can build and push this codebase to Quant Cloud.
 # Use this as a starting point for your own workflow if you are forking this repository.
 #
-# Runner Configuration:
-# - Set RUNNER_TYPE variable to 'ubuntu-24.04-arm' for ARM runners (quantcdn-templates org)
-# - Defaults to 'ubuntu-latest' (x86) for forks and private repos
-# - Set BUILD_PLATFORM variable to 'linux/arm64' or 'linux/amd64' to match your runner
+# Configuration Variables:
+# - RUNNER_TYPE: Set to 'ubuntu-24.04-arm' for ARM runners, defaults to 'ubuntu-latest' (x86)
+# - BUILD_PLATFORM: Set to 'linux/arm64' or 'linux/amd64' to match your runner
+# - QUANT_BASE_URL: Set to 'https://dash.quantgov.cloud/api/v3' for QuantGov customers
+#   (defaults to 'https://dashboard.quantcdn.io/api/v3')
 name: Build and Push Apache+PHP to Quant Cloud
 
 on:
@@ -36,6 +37,7 @@ jobs:
         with:
           quant_organization: ${{ secrets.QUANT_ORGANIZATION }}
           quant_api_key: ${{ secrets.QUANT_API_KEY }}
+          base_url: ${{ vars.QUANT_BASE_URL || 'https://dashboard.quantcdn.io/api/v3' }}
 
       - name: Build and push Apache+PHP image
         uses: docker/build-push-action@v5
@@ -58,6 +60,7 @@ jobs:
           environment_name: ${{ steps.init.outputs.environment_name }}
           from_environment: production
           image_suffix: ${{ steps.init.outputs.image_suffix_clean }}
+          base_url: ${{ vars.QUANT_BASE_URL || 'https://dashboard.quantcdn.io/api/v3' }}
 
       - name: Redeploy existing environment
         if: ${{ !startsWith(github.ref, 'refs/tags/') && steps.init.outputs.environment_exists == 'true' }}
@@ -68,3 +71,4 @@ jobs:
           application: ${{ steps.init.outputs.quant_application }}
           environment: ${{ steps.init.outputs.environment_name }}
           action: redeploy
+          base_url: ${{ vars.QUANT_BASE_URL || 'https://dashboard.quantcdn.io/api/v3' }}
