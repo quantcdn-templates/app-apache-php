@@ -11,7 +11,6 @@ services:
       - DB_DATABASE=apache_php
       - DB_USERNAME=apache_php
       - DB_PASSWORD=apache_php
-      - QUANT_ORIG_HOST=www.quantcdn2.io
       
       # Disable TLS for local MySQL (production RDS uses TLS by default)
       - DISABLE_DB_TLS=true
