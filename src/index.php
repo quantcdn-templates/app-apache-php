@@ -138,11 +138,24 @@
                         $username = $_ENV['DB_USERNAME'] ?? 'apache_php';
                         $password = $_ENV['DB_PASSWORD'] ?? 'apache_php';
                         
-                        $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+                        // Configure SSL/TLS for RDS if enabled
+                        $options = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION];
+                        $sslEnabled = ($_ENV['DB_SSL_ENABLED'] ?? 'false') === 'true';
+                        
+                        if ($sslEnabled) {
+                            $caPath = $_ENV['DB_SSL_CA'] ?? '/opt/rds-ca-certs/rds-ca-cert-bundle.pem';
+                            if (file_exists($caPath)) {
+                                $options[PDO::MYSQL_ATTR_SSL_CA] = $caPath;
+                                $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = true;
+                            }
+                        }
+                        
+                        $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password, $options);
                         echo "<p style='color: green;'>✅ Database connection successful!</p>";
                         echo "<p><strong>Host:</strong> " . htmlspecialchars($host) . "<br>";
                         echo "<strong>Database:</strong> " . htmlspecialchars($dbname) . "<br>";
-                        echo "<strong>Username:</strong> " . htmlspecialchars($username) . "</p>";
+                        echo "<strong>Username:</strong> " . htmlspecialchars($username) . "<br>";
+                        echo "<strong>SSL/TLS:</strong> " . ($sslEnabled ? 'Enabled ✓' : 'Disabled') . "</p>";
                     } catch (PDOException $e) {
                         echo "<p style='color: red;'>❌ Database connection failed: " . htmlspecialchars($e->getMessage()) . "</p>";
                     }

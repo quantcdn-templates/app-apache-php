@@ -1,0 +1,26 @@
+# Local development overrides
+# Copy this file to docker-compose.override.yml for local development
+# (docker-compose.override.yml is git-ignored and won't be deployed)
+
+services:
+  apache-php:
+    environment:
+      # Local development database variables
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=apache_php
+      - DB_USERNAME=apache_php
+      - DB_PASSWORD=apache_php
+      - QUANT_ORIG_HOST=www.quantcdn2.io
+      
+      # SMTP Configuration (uncomment for testing)
+      # - QUANT_SMTP_RELAY_ENABLED=false
+      # - QUANT_SMTP_HOST=mailhog
+      # - QUANT_SMTP_PORT=587
+      # - QUANT_SMTP_FROM=test@example.com
+      # - QUANT_SMTP_FROM_NAME="Apache PHP Test"
+
+  db:
+    ports:
+      # Expose MySQL port for local database clients
+      - "3306:3306"
