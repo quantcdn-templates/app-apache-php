@@ -138,16 +138,16 @@
                         $username = $_ENV['DB_USERNAME'] ?? 'apache_php';
                         $password = $_ENV['DB_PASSWORD'] ?? 'apache_php';
                         
-                        // Configure SSL/TLS for RDS if enabled
+                        // Enable TLS/SSL for RDS database connections when certificate is available
+                        // Can be disabled for local development with DISABLE_DB_TLS=true
                         $options = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION];
-                        $sslEnabled = ($_ENV['DB_SSL_ENABLED'] ?? 'false') === 'true';
+                        $caPath = '/opt/rds-ca-certs/rds-ca-cert-bundle.pem';
+                        $sslEnabled = false;
                         
-                        if ($sslEnabled) {
-                            $caPath = $_ENV['DB_SSL_CA'] ?? '/opt/rds-ca-certs/rds-ca-cert-bundle.pem';
-                            if (file_exists($caPath)) {
-                                $options[PDO::MYSQL_ATTR_SSL_CA] = $caPath;
-                                $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = true;
-                            }
+                        if (($_ENV['DISABLE_DB_TLS'] ?? 'false') !== 'true' && file_exists($caPath)) {
+                            $options[PDO::MYSQL_ATTR_SSL_CA] = $caPath;
+                            $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = true;
+                            $sslEnabled = true;
                         }
                         
                         $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password, $options);

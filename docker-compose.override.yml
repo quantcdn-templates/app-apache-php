@@ -13,6 +13,9 @@ services:
       - DB_PASSWORD=apache_php
       - QUANT_ORIG_HOST=www.quantcdn2.io
       
+      # Disable TLS for local MySQL (production RDS uses TLS by default)
+      - DISABLE_DB_TLS=true
+      
       # SMTP Configuration (uncomment for testing)
       # - QUANT_SMTP_RELAY_ENABLED=false
       # - QUANT_SMTP_HOST=mailhog
