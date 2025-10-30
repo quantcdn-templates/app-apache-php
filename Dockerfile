@@ -158,6 +158,10 @@ COPY --from=composer:2 /usr/bin/composer /usr/local/bin/
 COPY quant/entrypoints/ /quant-entrypoint.d/
 RUN chmod +x /quant-entrypoint.d/*
 
+# Copy custom entrypoint for local development testing
+COPY quant/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Copy Quant PHP configuration files (allows users to add custom PHP configs)
 COPY quant/php.ini.d/* /usr/local/etc/php/conf.d/
 

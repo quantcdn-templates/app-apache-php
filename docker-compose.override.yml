@@ -4,6 +4,10 @@
 
 services:
   apache-php:
+    # Use custom entrypoint to run /quant-entrypoint.d/ scripts locally
+    entrypoint: ["docker-entrypoint.sh"]
+    command: ["apache2-foreground"]
+    
     environment:
       # Local development database variables
       - DB_HOST=db
