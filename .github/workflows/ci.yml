@@ -18,8 +18,8 @@ on:
     branches:
       - main
   schedule:
-    # Run weekly to pick up new base image updates
-    - cron: '0 2 * * 1'
+    # Run daily at midnight UTC to pick up new base image updates
+    - cron: '0 0 * * *'
   workflow_dispatch:
 
 env:
