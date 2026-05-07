@@ -6,6 +6,9 @@ FROM php:${PHP_VERSION}-apache-${DEBIAN_VERSION}
 # Update system packages for security
 RUN set -ex; \
     apt-get update && \
+    # Preconfigure postfix to avoid interactive prompts
+    echo "postfix postfix/main_mailer_type select Internet Site" | debconf-set-selections && \
+    echo "postfix postfix/mailname string localhost" | debconf-set-selections && \
     apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
         ca-certificates \
@@ -13,7 +16,6 @@ RUN set -ex; \
         default-mysql-client \
         gettext \
         ghostscript \
-        git \
         gosu \
         libfreetype6-dev \
         libicu-dev \
@@ -21,12 +23,12 @@ RUN set -ex; \
         libmagickwand-dev \
         libpng-dev \
         libpq-dev \
+        libsasl2-modules \
         libwebp-dev \
         libzip-dev \
         openssl \
-        sudo \
+        postfix \
         unzip \
-        vim \
     && \
     # Install AVIF headers only for PHP >= 8.1 where we enable AVIF in GD (allow failure on unsupported arches/repos)
     if php -r 'exit(PHP_VERSION_ID >= 80100 ? 0 : 1);'; then \
@@ -116,6 +118,10 @@ RUN groupmod -g 1000 www-data && \
     sed -i 's/ErrorLog .*/ErrorLog \/dev\/stderr/' /etc/apache2/apache2.conf && \
     sed -i 's/CustomLog .*/CustomLog \/dev\/stdout combined/' /etc/apache2/sites-available/000-default.conf && \
     sed -i 's!ErrorLog.*!ErrorLog /dev/stderr!' /etc/apache2/sites-available/000-default.conf && \
+    # Create symlinks for log files to ensure they work even if config is reset at runtime
+    rm -f /var/log/apache2/error.log /var/log/apache2/access.log && \
+    ln -s /dev/stderr /var/log/apache2/error.log && \
+    ln -s /dev/stdout /var/log/apache2/access.log && \
     # Disable the other-vhosts-access-log configuration that causes permission issues
     a2disconf other-vhosts-access-log || true && \
     # Ensure Apache run directory exists and has correct permissions
@@ -154,6 +160,9 @@ RUN sed -i '/DocumentRoot \/var\/www\/html/a\\n\t# Quant Host header override\n\
 # Install Composer for PHP dependency management
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/
 
+# Strip SUID/SGID bits from all binaries (CIS 4.8)
+RUN find / -perm /6000 -type f -exec chmod a-s {} + 2>/dev/null || true
+
 # Include Quant config include (includes document root configuration)
 COPY quant/entrypoints/ /quant-entrypoint.d/
 RUN chmod +x /quant-entrypoint.d/*
@@ -176,6 +185,10 @@ COPY src/ /var/www/html/
 
 # Set proper permissions
 RUN chown -R www-data:www-data /var/www/html
+
+# Health check for container orchestration (CIS 4.6)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -fsS -o /dev/null http://localhost:80/ || exit 1
 
 # Expose port
 EXPOSE 80
