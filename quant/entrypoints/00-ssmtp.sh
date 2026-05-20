@@ -40,6 +40,14 @@ if [ -n "$QUANT_SMTP_HOST" ] && [ "$QUANT_SMTP_RELAY_ENABLED" != "true" ]; then
     postconf -e "smtp_tls_note_starttls_offer=yes"
     postconf -e "smtp_tls_CAfile=/etc/ssl/certs/ca-certificates.crt"
 
+    # Port 465 is SMTPS (implicit TLS) — wrap the connection from byte 0 instead
+    # of negotiating STARTTLS, which 465 endpoints do not speak.
+    if [ "$QUANT_SMTP_PORT" = "465" ]; then
+        postconf -e "smtp_tls_wrappermode=yes"
+    else
+        postconf -e "smtp_tls_wrappermode=no"
+    fi
+
     # Configure SASL auth
     postconf -e "smtp_sasl_auth_enable=yes"
     postconf -e "smtp_sasl_security_options=noanonymous"
