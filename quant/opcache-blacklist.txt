@@ -1,0 +1,9 @@
+; Paths excluded from OPcache (prefix match, one per line).
+; These contain PHP generated/rewritten at runtime - caching them either
+; serves stale security rules or churns the cache. They are recompiled on
+; each request instead, which keeps them correct when
+; opcache.validate_timestamps=0.
+/var/www/html/wp-content/wflogs
+/var/www/html/wp-content/cache
+/var/www/html/wp-content/et-cache
+/var/www/html/wp-content/uploads

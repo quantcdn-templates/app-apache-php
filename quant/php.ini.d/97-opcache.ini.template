@@ -1,0 +1,45 @@
+; OPcache Configuration for Production
+; Optimizes PHP performance by caching compiled bytecode
+; Reduces EFS metadata I/O for PHP apps with many files on shared storage
+; Tunable via PHP_OPCACHE_* environment variables (defaults in 02-php-config.sh)
+
+; Interned strings buffer (MB)
+opcache.interned_strings_buffer=16
+
+; Maximum number of accelerated files
+opcache.max_accelerated_files=${PHP_OPCACHE_MAX_FILES}
+
+; Memory consumption (MB)
+opcache.memory_consumption=${PHP_OPCACHE_MEMORY}
+
+; Timestamp validation. Default 1: revalidate cached files every
+; PHP_OPCACHE_REVALIDATE_FREQ seconds. Set PHP_OPCACHE_VALIDATE_TIMESTAMPS=0
+; for filesystems where stat traffic is billed (EFS): cached files are then
+; never re-stat'd, and code changes require an opcache_reset() - provided by
+; the Quant reset hooks (WordPress mu-plugin, Drupal quant_opcache module)
+; on admin-driven changes, or force-new-deployment for everything else.
+; Runtime-generated PHP (Wordfence wflogs, cache dirs) is excluded from
+; opcache via opcache.blacklist_filename so it stays fresh either way.
+opcache.validate_timestamps=${PHP_OPCACHE_VALIDATE_TIMESTAMPS}
+opcache.revalidate_freq=${PHP_OPCACHE_REVALIDATE_FREQ}
+
+; Never cache runtime-generated PHP (security-plugin rule files, disk caches).
+; Prefix-matched paths, one per line.
+opcache.blacklist_filename=/usr/local/etc/php/opcache-blacklist.txt
+
+; Intercept file_exists / is_file / is_readable to use OPcache's index.
+; Reduces stat() calls for common WordPress/Drupal path-check patterns.
+opcache.enable_file_override=1
+
+; Keep docblock comments (required by Doctrine annotations and some
+; WP/Drupal plugins that read @annotations at runtime).
+opcache.save_comments=1
+
+; Skip deep object cleanup at request shutdown - standard production setting.
+opcache.fast_shutdown=1
+
+; --- PHP realpath cache (separate subsystem, same goal) ---
+; Default 4KB is trivially small. WordPress exhausts it per request,
+; forcing re-stat of every parent directory on every include.
+realpath_cache_size=4M
+realpath_cache_ttl=600
