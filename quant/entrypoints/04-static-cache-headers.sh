@@ -4,10 +4,11 @@
 # them instead of re-fetching from origin (and origin storage, e.g. EFS) on
 # every request. mod_expires only applies when the response has no Expires
 # header already, so apps that manage their own caching are unaffected.
-# Disable with QUANT_STATIC_CACHE=0; tune TTL with QUANT_STATIC_CACHE_TTL.
+# Disable with QUANT_STATIC_CACHE=0; tune TTL with QUANT_STATIC_CACHE_TTL
+# (seconds, default 7 days).
 
 QUANT_STATIC_CACHE="${QUANT_STATIC_CACHE:-1}"
-QUANT_STATIC_CACHE_TTL="${QUANT_STATIC_CACHE_TTL:-86400}"
+QUANT_STATIC_CACHE_TTL="${QUANT_STATIC_CACHE_TTL:-604800}"
 CONF=/etc/apache2/conf-enabled/quant-static-cache.conf
 
 if [ "$QUANT_STATIC_CACHE" != "1" ]; then
