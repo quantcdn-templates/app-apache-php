@@ -131,6 +131,32 @@ Key environment variables you can configure:
 - `QUANT_SMTP_FROM_DOMAIN` - SMTP domain for configuration
 - `QUANT_SMTP_HOSTNAME` - SMTP hostname override
 
+#### PHP Configuration
+- `PHP_MEMORY_LIMIT` - Memory limit per script (default: 256M)
+- `PHP_UPLOAD_MAX_FILESIZE` - Max upload file size (default: 128M)
+- `PHP_POST_MAX_SIZE` - Max POST body size (default: 150M)
+- `PHP_MAX_FILE_UPLOADS` - Max simultaneous file uploads (default: 50)
+- `PHP_MAX_INPUT_VARS` - Max input variables (default: 3000)
+- `PHP_MAX_EXECUTION_TIME` - Max script execution time in seconds (default: 300)
+- `PHP_MAX_INPUT_TIME` - Max input parsing time in seconds (default: 300)
+
+#### OPcache (EFS/network-storage I/O tuning)
+- `PHP_OPCACHE_VALIDATE_TIMESTAMPS` - Re-stat cached files for changes (default: 1). Set to 0 on billed network storage (EFS) to eliminate stat traffic; code changes then require an opcache reset — provided by the WordPress reset mu-plugin (see below) for admin-driven changes, or a force-new-deployment.
+- `PHP_OPCACHE_REVALIDATE_FREQ` - Seconds between re-stats when validation is on (default: 3600)
+- `PHP_OPCACHE_MEMORY` - OPcache shared memory in MB (default: 300)
+- `PHP_OPCACHE_MAX_FILES` - Max cached scripts (default: 30000)
+
+`/usr/local/etc/php/opcache-blacklist.txt` lists paths excluded from OPcache (empty in this base image). Stack images that generate PHP at runtime overwrite it — e.g. app-wordpress excludes Wordfence `wflogs` and cache directories — so those files stay correct with validation off.
+
+#### Static asset caching
+- `QUANT_STATIC_CACHE` - Emit default Cache-Control/Expires headers for static assets (images/CSS/JS/fonts) so CDN and browsers cache them (default: 1). Only applies when the app doesn't set its own Expires header.
+- `QUANT_STATIC_CACHE_TTL` - TTL in seconds for those headers (default: 604800 = 7 days)
+
+WordPress-specific tuning (Wordfence wflogs relocation, the OPcache reset mu-plugin, WordPress OPcache exclusions) lives in the app-wordpress image, not here.
+
+#### Apache
+- `DOCUMENT_ROOT` - Override the Apache document root (default: /var/www/html)
+
 ### File Storage
 
 The application mounts your local `src/` directory to `/var/www/html` for development. A persistent volume is available at `/var/www/html/data` for application data.
