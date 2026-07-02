@@ -1,23 +1,29 @@
 ; OPcache Configuration for Production
 ; Optimizes PHP performance by caching compiled bytecode
 ; Reduces EFS metadata I/O for PHP apps with many files on shared storage
+; Tunable via PHP_OPCACHE_* environment variables (defaults in 02-php-config.sh)
 
 ; Interned strings buffer (MB)
 opcache.interned_strings_buffer=16
 
 ; Maximum number of accelerated files
-opcache.max_accelerated_files=30000
+opcache.max_accelerated_files=${PHP_OPCACHE_MAX_FILES}
 
 ; Memory consumption (MB)
-opcache.memory_consumption=300
+opcache.memory_consumption=${PHP_OPCACHE_MEMORY}
 
-; Revalidate cached files every hour, not every minute.
-; Framework-specific hooks (WordPress mu-plugin, Drupal quant_opcache module)
-; call opcache_reset() on admin-driven changes for immediate propagation on
-; the current container. Other containers in the same service re-sync within
-; opcache.revalidate_freq. For emergency propagation, force-new-deployment.
-opcache.validate_timestamps=1
-opcache.revalidate_freq=3600
+; Timestamp validation. Default 1: revalidate cached files every
+; PHP_OPCACHE_REVALIDATE_FREQ seconds. Set PHP_OPCACHE_VALIDATE_TIMESTAMPS=0
+; for filesystems where stat traffic is billed (EFS): cached files are then
+; never re-stat'd, and code changes require an opcache_reset() - provided by
+; the Quant reset hooks (WordPress mu-plugin, Drupal quant_opcache module)
+; on admin-driven changes, or force-new-deployment for everything else.
+opcache.validate_timestamps=${PHP_OPCACHE_VALIDATE_TIMESTAMPS}
+opcache.revalidate_freq=${PHP_OPCACHE_REVALIDATE_FREQ}
+
+; Exclusion list for runtime-generated PHP (prefix-matched paths, one per
+; line). Empty in this base image; stack images overwrite the file.
+opcache.blacklist_filename=/usr/local/etc/php/opcache-blacklist.txt
 
 ; Intercept file_exists / is_file / is_readable to use OPcache's index.
 ; Reduces stat() calls for common WordPress/Drupal path-check patterns.

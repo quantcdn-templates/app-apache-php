@@ -174,6 +174,10 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 # Copy Quant PHP configuration files (allows users to add custom PHP configs)
 COPY quant/php.ini.d/* /usr/local/etc/php/conf.d/
 
+# OPcache exclusion list hook: empty here; stack images (e.g. app-wordpress)
+# overwrite it with their runtime-generated-PHP paths
+COPY quant/opcache-blacklist.txt /usr/local/etc/php/opcache-blacklist.txt
+
 # Set working directory
 WORKDIR /var/www/html
 

@@ -1,0 +1,5 @@
+; OPcache exclusion list (prefix match, one per line).
+; The base image ships this empty. Stack images that generate PHP at
+; runtime overwrite it with their exclusions (e.g. app-wordpress adds
+; Wordfence wflogs and cache directories) so those files are recompiled
+; per request and stay correct when opcache.validate_timestamps=0.
