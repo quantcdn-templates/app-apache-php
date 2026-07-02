@@ -1,9 +1,5 @@
-; Paths excluded from OPcache (prefix match, one per line).
-; These contain PHP generated/rewritten at runtime - caching them either
-; serves stale security rules or churns the cache. They are recompiled on
-; each request instead, which keeps them correct when
-; opcache.validate_timestamps=0.
-/var/www/html/wp-content/wflogs
-/var/www/html/wp-content/cache
-/var/www/html/wp-content/et-cache
-/var/www/html/wp-content/uploads
+; OPcache exclusion list (prefix match, one per line).
+; The base image ships this empty. Stack images that generate PHP at
+; runtime overwrite it with their exclusions (e.g. app-wordpress adds
+; Wordfence wflogs and cache directories) so those files are recompiled
+; per request and stay correct when opcache.validate_timestamps=0.

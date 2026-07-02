@@ -146,16 +146,13 @@ Key environment variables you can configure:
 - `PHP_OPCACHE_MEMORY` - OPcache shared memory in MB (default: 300)
 - `PHP_OPCACHE_MAX_FILES` - Max cached scripts (default: 30000)
 
-Runtime-generated PHP (Wordfence `wflogs`, `wp-content/cache`, `wp-content/uploads`) is never bytecode-cached regardless of these settings (see `quant/opcache-blacklist.txt`), so it stays correct with validation off.
+`/usr/local/etc/php/opcache-blacklist.txt` lists paths excluded from OPcache (empty in this base image). Stack images that generate PHP at runtime overwrite it — e.g. app-wordpress excludes Wordfence `wflogs` and cache directories — so those files stay correct with validation off.
 
 #### Static asset caching
 - `QUANT_STATIC_CACHE` - Emit default Cache-Control/Expires headers for static assets (images/CSS/JS/fonts) so CDN and browsers cache them (default: 1). Only applies when the app doesn't set its own Expires header.
 - `QUANT_STATIC_CACHE_TTL` - TTL in seconds for those headers (default: 604800 = 7 days)
 
-#### WordPress on a persistent volume
-These apply when a WordPress install lives on the mounted volume (e.g. Quant Cloud sites running this base image directly):
-- `QUANT_WP_OPCACHE_RESET` - Install the OPcache reset mu-plugin into `wp-content/mu-plugins/` at boot; it resets OPcache on plugin/theme/core changes (default: 1)
-- `QUANT_WF_LOCAL_WFLOGS` - Relocate Wordfence's `wflogs` directory to container-local disk via symlink; the WAF re-reads/rewrites wflogs constantly, which is expensive on billed network storage. Rules re-sync from Wordfence's API on fresh containers. `auto` relocates only when wflogs is on network storage (NFS/EFS) and no-ops on local disk; `1` always relocates; `0` never relocates and reverts an earlier relocation (default: auto)
+WordPress-specific tuning (Wordfence wflogs relocation, the OPcache reset mu-plugin, WordPress OPcache exclusions) lives in the app-wordpress image, not here.
 
 #### Apache
 - `DOCUMENT_ROOT` - Override the Apache document root (default: /var/www/html)

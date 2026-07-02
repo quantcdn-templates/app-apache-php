@@ -18,13 +18,11 @@ opcache.memory_consumption=${PHP_OPCACHE_MEMORY}
 ; never re-stat'd, and code changes require an opcache_reset() - provided by
 ; the Quant reset hooks (WordPress mu-plugin, Drupal quant_opcache module)
 ; on admin-driven changes, or force-new-deployment for everything else.
-; Runtime-generated PHP (Wordfence wflogs, cache dirs) is excluded from
-; opcache via opcache.blacklist_filename so it stays fresh either way.
 opcache.validate_timestamps=${PHP_OPCACHE_VALIDATE_TIMESTAMPS}
 opcache.revalidate_freq=${PHP_OPCACHE_REVALIDATE_FREQ}
 
-; Never cache runtime-generated PHP (security-plugin rule files, disk caches).
-; Prefix-matched paths, one per line.
+; Exclusion list for runtime-generated PHP (prefix-matched paths, one per
+; line). Empty in this base image; stack images overwrite the file.
 opcache.blacklist_filename=/usr/local/etc/php/opcache-blacklist.txt
 
 ; Intercept file_exists / is_file / is_readable to use OPcache's index.

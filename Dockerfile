@@ -174,12 +174,9 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 # Copy Quant PHP configuration files (allows users to add custom PHP configs)
 COPY quant/php.ini.d/* /usr/local/etc/php/conf.d/
 
-# OPcache blacklist: runtime-generated PHP that must never be bytecode-cached
+# OPcache exclusion list hook: empty here; stack images (e.g. app-wordpress)
+# overwrite it with their runtime-generated-PHP paths
 COPY quant/opcache-blacklist.txt /usr/local/etc/php/opcache-blacklist.txt
-
-# OPcache reset mu-plugin, installed into WordPress-on-volume sites by
-# 03-wp-opcache-reset-plugin.sh
-COPY quant/wp-mu-plugins/ /opt/quant/wp-mu-plugins/
 
 # Set working directory
 WORKDIR /var/www/html
