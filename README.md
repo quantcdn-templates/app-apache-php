@@ -155,7 +155,7 @@ Runtime-generated PHP (Wordfence `wflogs`, `wp-content/cache`, `wp-content/uploa
 #### WordPress on a persistent volume
 These apply when a WordPress install lives on the mounted volume (e.g. Quant Cloud sites running this base image directly):
 - `QUANT_WP_OPCACHE_RESET` - Install the OPcache reset mu-plugin into `wp-content/mu-plugins/` at boot; it resets OPcache on plugin/theme/core changes (default: 1)
-- `QUANT_WF_LOCAL_WFLOGS` - Relocate Wordfence's `wflogs` directory to container-local disk via symlink; the WAF re-reads/rewrites wflogs constantly, which is expensive on billed network storage. Rules re-sync from Wordfence's API on fresh containers; unsetting the flag reverts the relocation (default: 0)
+- `QUANT_WF_LOCAL_WFLOGS` - Relocate Wordfence's `wflogs` directory to container-local disk via symlink; the WAF re-reads/rewrites wflogs constantly, which is expensive on billed network storage. Rules re-sync from Wordfence's API on fresh containers. `auto` relocates only when wflogs is on network storage (NFS/EFS) and no-ops on local disk; `1` always relocates; `0` never relocates and reverts an earlier relocation (default: auto)
 
 #### Apache
 - `DOCUMENT_ROOT` - Override the Apache document root (default: /var/www/html)

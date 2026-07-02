@@ -9,38 +9,51 @@
 # storage only costs that node's attack-log history (still visible in the
 # Wordfence dashboard).
 #
-# Opt-in via QUANT_WF_LOCAL_WFLOGS=1. With the flag off (default) an earlier
-# relocation is reverted so sites can roll back by unsetting the env var.
+# QUANT_WF_LOCAL_WFLOGS:
+#   auto (default) - relocate only when wflogs lives on network storage (NFS);
+#                    no-op on local disk, where relocation buys nothing
+#   1              - always relocate
+#   0              - never relocate; revert an earlier relocation
 
-QUANT_WF_LOCAL_WFLOGS="${QUANT_WF_LOCAL_WFLOGS:-0}"
+QUANT_WF_LOCAL_WFLOGS="${QUANT_WF_LOCAL_WFLOGS:-auto}"
 WP_ROOT="${DOCUMENT_ROOT:-/var/www/html}"
 WFLOGS="${WP_ROOT}/wp-content/wflogs"
 BACKUP="${WP_ROOT}/wp-content/wflogs.pre-local"
 LOCAL=/var/lib/quant/wflogs
 
-if [ "$QUANT_WF_LOCAL_WFLOGS" = "1" ]; then
-    # Nothing to do unless Wordfence has created wflogs
-    if [ -d "$WFLOGS" ] && [ ! -L "$WFLOGS" ]; then
-        mkdir -p "$LOCAL"
-        cp -a "$WFLOGS/." "$LOCAL/" 2>/dev/null || true
-        rm -rf "$BACKUP"
-        mv "$WFLOGS" "$BACKUP"
-        ln -s "$LOCAL" "$WFLOGS"
-        echo "✅ wflogs relocated to local disk (${LOCAL}); previous copy at ${BACKUP}"
-    elif [ -L "$WFLOGS" ]; then
-        # Another container already converted the shared volume: make sure the
-        # local target exists on THIS node, seeded from the backup if present.
-        if [ ! -d "$LOCAL" ]; then
+wants_relocation() {
+    case "$QUANT_WF_LOCAL_WFLOGS" in
+        1) return 0 ;;
+        auto)
+            # Relocate in auto mode only when wflogs sits on NFS (e.g. EFS).
+            # A pre-existing symlink means a previous boot already decided.
+            [ -L "$WFLOGS" ] && return 0
+            fstype=$(stat -f -c %T "$WFLOGS" 2>/dev/null)
+            case "$fstype" in nfs*) return 0 ;; esac
+            return 1 ;;
+        *) return 1 ;;
+    esac
+}
+
+if [ -d "$WFLOGS" ] || [ -L "$WFLOGS" ]; then
+    if wants_relocation; then
+        if [ ! -L "$WFLOGS" ]; then
+            mkdir -p "$LOCAL"
+            cp -a "$WFLOGS/." "$LOCAL/" 2>/dev/null || true
+            rm -rf "$BACKUP"
+            mv "$WFLOGS" "$BACKUP"
+            ln -s "$LOCAL" "$WFLOGS"
+            echo "✅ wflogs relocated to local disk (${LOCAL}); previous copy at ${BACKUP}"
+        elif [ ! -d "$LOCAL" ]; then
+            # Another container already converted the shared volume: make sure
+            # the local target exists on THIS node, seeded from the backup.
             mkdir -p "$LOCAL"
             [ -d "$BACKUP" ] && cp -a "$BACKUP/." "$LOCAL/" 2>/dev/null || true
             echo "✅ wflogs local target created for this container (${LOCAL})"
         fi
-    fi
-    chown -R www-data:www-data "$LOCAL" 2>/dev/null || true
-else
-    # Flag off: revert a previous relocation so Wordfence writes to the
-    # persistent volume again.
-    if [ -L "$WFLOGS" ]; then
+        chown -R www-data:www-data "$LOCAL" 2>/dev/null || true
+    elif [ "$QUANT_WF_LOCAL_WFLOGS" = "0" ] && [ -L "$WFLOGS" ]; then
+        # Explicitly disabled: revert so Wordfence writes to the volume again.
         rm -f "$WFLOGS"
         if [ -d "$BACKUP" ]; then
             mv "$BACKUP" "$WFLOGS"
