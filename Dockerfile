@@ -161,7 +161,24 @@ RUN sed -i '/DocumentRoot \/var\/www\/html/a\\n\t# Quant Host header override\n\
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/
 
 # Strip SUID/SGID bits from all binaries (CIS 4.8)
-RUN find / -perm /6000 -type f -exec chmod a-s {} + 2>/dev/null || true
+# Exception: /usr/sbin/postdrop keeps its setgid(postdrop) bit — it is Postfix's
+# required submission path. Without it, PHP mail() fails with
+# "mail_queue_enter: create file maildrop/...: No such file or directory" and
+# callers that retry (e.g. Drupal cron queue workers) hang indefinitely.
+# This must be baked into the image: cron/exec tasks skip /quant-entrypoint.d
+# (the platform wrapper sets QUANT_EXEC_ENV for one-off commands), so a runtime
+# entrypoint script cannot repair it in those paths.
+RUN find / -perm /6000 -type f ! -path /usr/sbin/postdrop -exec chmod a-s {} + 2>/dev/null || true && \
+    # Ensure the Postfix queue dirs exist with correct ownership/modes so mail()
+    # works in every execution path (web, cron, exec) with no runtime setup.
+    mkdir -p /var/spool/postfix/maildrop /var/spool/postfix/public /var/spool/postfix/pid && \
+    chown -R postfix:postdrop /var/spool/postfix/maildrop /var/spool/postfix/public && \
+    chown -R root:root /var/spool/postfix/pid && \
+    chmod 730 /var/spool/postfix/maildrop && \
+    chmod 710 /var/spool/postfix/public && \
+    chmod 755 /var/spool/postfix/pid && \
+    chgrp postdrop /usr/sbin/postdrop && \
+    chmod 2755 /usr/sbin/postdrop
 
 # Include Quant config include (includes document root configuration)
 COPY quant/entrypoints/ /quant-entrypoint.d/
