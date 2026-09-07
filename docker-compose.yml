@@ -1,6 +1,9 @@
+# Quant Cloud: run on ARM64 to match the arm64 images the org builds.
+x-quant-labels:
+  quant.architecture: ARM64
+
 services:
   apache-php:
-    image: ghcr.io/quantcdn-templates/app-apache-php:latest # can use 7.4, 8.2, 8.3, 8.4, latest
     build: .
     restart: unless-stopped
     ports:
