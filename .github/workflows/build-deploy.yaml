@@ -109,5 +109,19 @@ jobs:
             exit 1
           fi
 
-          curl -fsS -X PUT -H "$AUTH" -H "Content-Type: application/json" \
-            -d '{"enabled": true, "idleMinutes": 30}' "$URL/idle-sleep"
+          # The record can answer 500 for a few seconds after creation
+          # completes while the platform finishes wiring it up. Retry.
+          for attempt in $(seq 1 6); do
+            CODE=$(curl -s -o idle-sleep.json -w '%{http_code}' -X PUT -H "$AUTH" \
+              -H "Content-Type: application/json" \
+              -d '{"enabled": true, "idleMinutes": 30}' "$URL/idle-sleep")
+            if [ "$CODE" = "200" ]; then
+              cat idle-sleep.json; echo
+              exit 0
+            fi
+            echo "idle-sleep PUT returned HTTP $CODE (attempt $attempt/6)"
+            sleep 15
+          done
+          echo "::error::Could not enable idle sleep on $ENVIRONMENT (last HTTP $CODE)"
+          cat idle-sleep.json 2>/dev/null; echo
+          exit 1
