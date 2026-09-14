@@ -1,0 +1,13 @@
+# Take PHP itself from packages.sury.org and everything else from Debian.
+#
+# Sury's repository also carries some libraries that Debian ships (libgd3, for
+# example). Priority 100 keeps Debian's build of those, which Debian's security
+# team patches. A Sury-only library that PHP needs (Debian has no version) is
+# still installed, because it is the only candidate.
+Package: *
+Pin: origin packages.sury.org
+Pin-Priority: 100
+
+Package: php7.4* libapache2-mod-php7.4 php-common
+Pin: origin packages.sury.org
+Pin-Priority: 500

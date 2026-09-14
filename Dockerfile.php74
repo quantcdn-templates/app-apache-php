@@ -1,0 +1,230 @@
+# PHP 7.4 (legacy) Apache image.
+#
+# PHP 7.4 reached end of life in November 2022, and Debian 11, the last Debian
+# release that shipped it, reached end of life in August 2026. The official
+# php:7.4-apache image is frozen on Debian 11 with a PHP binary built in 2022.
+#
+# This image runs PHP 7.4 on a supported Debian release (trixie), from
+# packages.sury.org, whose PHP 7.4 packages still receive backported security
+# fixes. It keeps the layout of the official php:*-apache images, so images
+# built FROM it need no changes:
+#   - one ini directory for every SAPI: /usr/local/etc/php/conf.d, no php.ini
+#   - docker-php-ext-install / -enable / -configure (install php7.4-* packages)
+#   - docker-php-entrypoint, apache2-foreground and /usr/local/bin/php
+#
+# Use it only for sites that cannot move to PHP 8.
+FROM debian:trixie-slim
+
+# SHA-256 of debsuryorg-archive-keyring 2025.11.18 from packages.sury.org.
+# Pinned so that a changed signing key fails the build instead of being trusted.
+ARG SURY_KEYRING_SHA256=7511384559c9ddf1d5ce5f60be429ae9d4e7d01d9480d6f1b7a30c0810cf8b60
+
+ENV PHP_INI_DIR=/usr/local/etc/php \
+    APACHE_CONFDIR=/etc/apache2 \
+    APACHE_ENVVARS=/etc/apache2/envvars
+
+COPY php74/apt/sury-php.pref /etc/apt/preferences.d/sury-php.pref
+
+# Add the Sury repository, apply Debian's security updates, then install PHP 7.4
+# with the same extensions as the PHP 8 images.
+RUN set -eux; \
+    export DEBIAN_FRONTEND=noninteractive; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends ca-certificates curl; \
+    curl -fsSLo /tmp/sury-keyring.deb https://packages.sury.org/debsuryorg-archive-keyring.deb; \
+    echo "${SURY_KEYRING_SHA256}  /tmp/sury-keyring.deb" | sha256sum -c -; \
+    dpkg -i /tmp/sury-keyring.deb; \
+    rm -f /tmp/sury-keyring.deb; \
+    echo "deb [signed-by=/usr/share/keyrings/debsuryorg-archive-keyring.gpg] https://packages.sury.org/php/ trixie main" \
+        > /etc/apt/sources.list.d/sury-php.list; \
+    apt-get update; \
+    echo "postfix postfix/main_mailer_type select Internet Site" | debconf-set-selections; \
+    echo "postfix postfix/mailname string localhost" | debconf-set-selections; \
+    apt-get upgrade -y; \
+    apt-get install -y --no-install-recommends \
+        apache2 \
+        default-mysql-client \
+        gettext-base \
+        ghostscript \
+        gosu \
+        libapache2-mod-php7.4 \
+        libsasl2-modules \
+        openssl \
+        php7.4-apcu \
+        php7.4-bcmath \
+        php7.4-cli \
+        php7.4-curl \
+        php7.4-gd \
+        php7.4-imagick \
+        php7.4-intl \
+        php7.4-mbstring \
+        php7.4-mysql \
+        php7.4-opcache \
+        php7.4-pgsql \
+        php7.4-readline \
+        php7.4-redis \
+        php7.4-sqlite3 \
+        php7.4-xml \
+        php7.4-zip \
+        postfix \
+        unzip; \
+    rm -rf /var/lib/apt/lists/*
+
+# Match the official image's PHP layout: no php.ini unless one is added to
+# $PHP_INI_DIR, and one conf.d directory scanned by both the Apache module and
+# the CLI. Extensions that the official 7.4 image did not load stay disabled.
+RUN set -eux; \
+    mkdir -p "$PHP_INI_DIR/conf.d"; \
+    for sapi in apache2 cli; do \
+        cp -a "/etc/php/7.4/$sapi/conf.d/." "$PHP_INI_DIR/conf.d/"; \
+        rm -rf "/etc/php/7.4/$sapi/conf.d" "/etc/php/7.4/$sapi/php.ini"; \
+        ln -s "$PHP_INI_DIR/conf.d" "/etc/php/7.4/$sapi/conf.d"; \
+        ln -s "$PHP_INI_DIR/php.ini" "/etc/php/7.4/$sapi/php.ini"; \
+    done; \
+    cp /usr/lib/php/7.4/php.ini-production /usr/lib/php/7.4/php.ini-development "$PHP_INI_DIR/"; \
+    phpdismod -v 7.4 -s ALL calendar ffi gettext pgsql shmop sysvmsg sysvsem sysvshm xsl; \
+    ln -s /usr/bin/php7.4 /usr/local/bin/php; \
+    php --ini
+
+COPY php74/php/00-official-defaults.ini $PHP_INI_DIR/conf.d/
+
+# Official-image helper commands. docker-php-ext-* install php7.4-* packages.
+COPY php74/bin/docker-php-ext php74/bin/docker-php-entrypoint php74/bin/apache2-foreground /usr/local/bin/
+RUN set -eux; \
+    chmod 755 /usr/local/bin/docker-php-ext /usr/local/bin/docker-php-entrypoint /usr/local/bin/apache2-foreground; \
+    for cmd in install enable configure; do ln -s docker-php-ext "/usr/local/bin/docker-php-ext-$cmd"; done
+
+# Match the official image's Apache setup: prefork with mod_php, envvars that
+# the environment can override, and run/lock/log directories for www-data.
+COPY php74/apache/docker-php.conf /etc/apache2/conf-available/docker-php.conf
+COPY php74/apache/php7.4.conf /etc/apache2/mods-available/php7.4.conf
+RUN set -eux; \
+    a2dismod -f mpm_event mpm_worker || true; \
+    a2enmod mpm_prefork php7.4; \
+    a2enconf docker-php; \
+    sed -ri 's/^export ([^=]+)=(.*)$/: ${\1:=\2}\nexport \1/' "$APACHE_ENVVARS"; \
+    . "$APACHE_ENVVARS"; \
+    for dir in "$APACHE_LOCK_DIR" "$APACHE_RUN_DIR" "$APACHE_LOG_DIR"; do \
+        rm -rvf "$dir"; \
+        mkdir -p "$dir"; \
+        chown "$APACHE_RUN_USER:$APACHE_RUN_GROUP" "$dir"; \
+        chmod 1777 "$dir"; \
+    done; \
+    rm -rf /var/www/html; \
+    mkdir -p /var/www/html; \
+    chown -R www-data:www-data /var/www
+
+# From here on, the steps are the same as in Dockerfile.
+
+# AWS RDS CA certificates and Apache modules
+RUN set -eux; \
+    mkdir -p /tmp/rds-certs /opt/rds-ca-certs; \
+    curl -fsSL "https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem" \
+         -o /tmp/rds-certs/rds-ca-cert-bundle.pem; \
+    cp /tmp/rds-certs/rds-ca-cert-bundle.pem /opt/rds-ca-certs/rds-ca-cert-bundle.pem; \
+    cp /tmp/rds-certs/rds-ca-cert-bundle.pem /usr/local/share/ca-certificates/rds-ca-cert-bundle.crt; \
+    update-ca-certificates; \
+    rm -rf /tmp/rds-certs; \
+    a2enmod expires headers remoteip rewrite; \
+    echo 'RemoteIPHeader Quant-Client-IP' >> /etc/apache2/conf-available/remoteip.conf; \
+    a2enconf remoteip
+
+# Remap www-data to UID/GID 1000 to match EFS access points
+RUN groupmod -g 1000 www-data && \
+    usermod -u 1000 -g 1000 www-data && \
+    # Fix ownership of existing www-data files after UID/GID change
+    find / -user 33 -exec chown www-data {} \; 2>/dev/null || true && \
+    find / -group 33 -exec chgrp www-data {} \; 2>/dev/null || true && \
+    # Configure Apache to log to stdout/stderr
+    sed -i 's/ErrorLog .*/ErrorLog \/dev\/stderr/' /etc/apache2/apache2.conf && \
+    sed -i 's/CustomLog .*/CustomLog \/dev\/stdout combined/' /etc/apache2/sites-available/000-default.conf && \
+    sed -i 's!ErrorLog.*!ErrorLog /dev/stderr!' /etc/apache2/sites-available/000-default.conf && \
+    # Create symlinks for log files to ensure they work even if config is reset at runtime
+    rm -f /var/log/apache2/error.log /var/log/apache2/access.log && \
+    ln -s /dev/stderr /var/log/apache2/error.log && \
+    ln -s /dev/stdout /var/log/apache2/access.log && \
+    # Disable the other-vhosts-access-log configuration that causes permission issues
+    a2disconf other-vhosts-access-log || true && \
+    # Ensure Apache run directory exists and has correct permissions
+    mkdir -p /var/run/apache2 && \
+    chown -R www-data:www-data /var/run/apache2
+
+# Fix LogFormat for proper client IP logging
+RUN find /etc/apache2 -type f -name '*.conf' -exec sed -ri 's/([[:space:]]*LogFormat[[:space:]]+"[^"]*)%h([^"]*")/\1%a\2/g' '{}' +
+
+# Quant Host header override (VirtualHost include approach)
+RUN cat <<'EOF' > /etc/apache2/conf-available/quant-host-snippet.conf
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # Priority 1: Check HTTP header Quant-Orig-Host (only accept well-formed hosts)
+    RewriteCond %{HTTP:Quant-Orig-Host} ^([A-Za-z0-9.-]+(?::[0-9]+)?)$ [NC]
+    RewriteRule ^ - [E=QUANT_HOST:%1]
+    # Priority 2: If header not set, check env var QUANT_ORIG_HOST
+    RewriteCond %{ENV:QUANT_HOST} ^$
+    RewriteCond %{ENV:QUANT_ORIG_HOST} ^([A-Za-z0-9.-]+(?::[0-9]+)?)$ [NC]
+    RewriteRule ^ - [E=QUANT_HOST:%1]
+</IfModule>
+# Only override Host header if QUANT_HOST was set by one of the rules above
+RequestHeader set Host "%{QUANT_HOST}e" env=QUANT_HOST
+EOF
+
+RUN a2enconf quant-host-snippet
+
+RUN sed -i '/DocumentRoot \/var\/www\/html/a\\n\t# Quant Host header override\n\tIncludeOptional /etc/apache2/conf-enabled/quant-host-snippet.conf' /etc/apache2/sites-available/000-default.conf
+
+# Install Composer for PHP dependency management
+COPY --from=composer:2 /usr/bin/composer /usr/local/bin/
+
+# Strip SUID/SGID bits from all binaries (CIS 4.8)
+# Exception: /usr/sbin/postdrop keeps its setgid(postdrop) bit — it is Postfix's
+# required submission path. See Dockerfile for the full rationale.
+RUN find / -perm /6000 -type f ! -path /usr/sbin/postdrop -exec chmod a-s {} + 2>/dev/null || true && \
+    # Ensure the Postfix queue dirs exist with correct ownership/modes so mail()
+    # works in every execution path (web, cron, exec) with no runtime setup.
+    mkdir -p /var/spool/postfix/maildrop /var/spool/postfix/public /var/spool/postfix/pid && \
+    chown -R postfix:postdrop /var/spool/postfix/maildrop /var/spool/postfix/public && \
+    chown -R root:root /var/spool/postfix/pid && \
+    chmod 730 /var/spool/postfix/maildrop && \
+    chmod 710 /var/spool/postfix/public && \
+    chmod 755 /var/spool/postfix/pid && \
+    chgrp postdrop /usr/sbin/postdrop && \
+    chmod 2755 /usr/sbin/postdrop
+
+# Include Quant config include (includes document root configuration)
+COPY quant/entrypoints/ /quant-entrypoint.d/
+RUN chmod +x /quant-entrypoint.d/*
+
+# Copy custom entrypoint for local development testing
+COPY quant/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Copy Quant PHP configuration files (allows users to add custom PHP configs)
+COPY quant/php.ini.d/* /usr/local/etc/php/conf.d/
+
+# OPcache exclusion list hook: empty here; stack images (e.g. app-wordpress)
+# overwrite it with their runtime-generated-PHP paths
+COPY quant/opcache-blacklist.txt /usr/local/etc/php/opcache-blacklist.txt
+
+# Set working directory
+WORKDIR /var/www/html
+
+# Copy default source files to template location (for copying when /var/www/html is mounted)
+COPY src/ /opt/default-src/
+
+# Copy application source code
+COPY src/ /var/www/html/
+
+# Set proper permissions
+RUN chown -R www-data:www-data /var/www/html
+
+# Health check for container orchestration (CIS 4.6)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -fsS -o /dev/null http://localhost:80/ || exit 1
+
+# Apache's graceful stop, as in the official image
+STOPSIGNAL SIGWINCH
+
+EXPOSE 80
+
+ENTRYPOINT ["docker-php-entrypoint"]
+CMD ["apache2-foreground"]

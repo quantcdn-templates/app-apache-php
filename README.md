@@ -45,7 +45,7 @@ For both deployment options, you can develop locally using either Docker Compose
    ```
    
    **Available versions:**
-   - `:7.4` - For legacy applications (PHP 7.4 is EOL)
+   - `:7.4` - For legacy applications only (PHP 7.4 is EOL). Built from `Dockerfile.php74`; see [PHP 7.4 (legacy) image](#php-74-legacy-image)
    - `:8.2` - Stable, widely supported
    - `:8.3` - Current stable  
    - `:8.4` - Latest stable (default)
@@ -75,11 +75,16 @@ For both deployment options, you can develop locally using either Docker Compose
    docker-compose up -d
    ```
 
-8. Rebuild the application with specific PHP and Debian versions:
+8. Rebuild the application with a specific PHP 8 version:
    ```bash
-   docker-compose build --no-cache --progress=plain --build-arg PHP_VERSION=7.4 --build-arg DEBIAN_VERSION=bullseye
+   docker-compose build --no-cache --progress=plain --build-arg PHP_VERSION=8.3
    docker-compose up -d
    docker-compose exec apache-php php -v
+   ```
+
+   PHP 7.4 builds from its own Dockerfile:
+   ```bash
+   docker build -f Dockerfile.php74 -t app-apache-php:7.4 .
    ```
 
 ### Option 2: DDEV (Recommended for Developers)
@@ -179,6 +184,27 @@ The following common PHP extensions are pre-installed. Review the "Checking PHP 
 - **Redis** - Redis client (extension available, no server included)
 - **Sockets** - Network socket operations
 - **ZIP** - Archive handling
+
+### PHP 7.4 (legacy) image
+
+PHP 7.4 reached end of life in November 2022, and Debian 11, the last Debian release that shipped it, reached end of life in August 2026. The official `php:7.4-apache` image is frozen on Debian 11 with a PHP binary built in 2022, so it no longer receives security fixes of any kind.
+
+The `:7.4` tag is therefore built differently from the PHP 8 tags (`Dockerfile.php74`):
+
+- **Base:** `debian:trixie-slim`, a supported Debian release that receives Debian security updates.
+- **PHP:** PHP 7.4 packages from [packages.sury.org](https://deb.sury.org/), which still receive backported security fixes. The repository signing key is pinned by SHA-256, and apt takes only the PHP packages from it (`php74/apt/sury-php.pref`); every other package comes from Debian.
+- **Compatibility:** the image keeps the official image's layout, so images built `FROM` it work unchanged:
+  - one ini directory for Apache and the CLI, `/usr/local/etc/php/conf.d`, and no `php.ini` unless you add one to `$PHP_INI_DIR`
+  - `docker-php-ext-install`, `docker-php-ext-enable` and `docker-php-ext-configure`: these install the matching `php7.4-*` package (for example `docker-php-ext-install soap ldap`). Build flags such as `-j4` or `--with-freetype` are accepted and ignored, and an unknown extension fails the build.
+  - `docker-php-entrypoint`, `apache2-foreground` and `/usr/local/bin/php`
+- **Differences to be aware of:**
+  - Extensions come from packages, so there are no `-dev` libraries, `phpize` or `pecl` in the image. Most `-dev` package names used for PHP 8 builds are unnecessary here; install extensions with `docker-php-ext-install <name>` instead.
+  - Debian trixie has no `/etc/apt/sources.list`. Do not edit apt sources in a downstream Dockerfile.
+  - `pcntl` is always available on the CLI (it is compiled into Debian's CLI binary).
+
+`tests/php74/run-tests.sh <image>` checks this parity and runs in CI for the 7.4 build.
+
+Use this image only for sites that cannot move to PHP 8.
 
 ### Using Composer
 

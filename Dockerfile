@@ -1,21 +1,7 @@
 ARG PHP_VERSION=8.4
 ARG DEBIAN_VERSION=trixie
-# Use trixie for PHP 8.2+, bullseye for PHP 7.4 (since trixie/bookworm not available)
+# PHP 8.2+ on the official images. PHP 7.4 builds from Dockerfile.php74.
 FROM php:${PHP_VERSION}-apache-${DEBIAN_VERSION}
-
-# Debian 11 (bullseye, used by the PHP 7.4 build) reached end of life. The
-# bullseye-security pool on deb.debian.org no longer serves current packages
-# and its Release file is stale, so apt-get update fails. Point main/updates
-# at archive.debian.org, drop the dead security source, and skip the Release
-# validity check. Newer bases (bookworm/trixie) skip this block.
-RUN set -eu; \
-    . /etc/os-release; \
-    if [ "${VERSION_CODENAME:-}" = "bullseye" ]; then \
-        sed -i -e '/debian-security/d' \
-               -e 's|http://deb.debian.org/debian|http://archive.debian.org/debian|g' \
-               /etc/apt/sources.list; \
-        echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99archive; \
-    fi
 
 # Update system packages for security
 RUN set -ex; \

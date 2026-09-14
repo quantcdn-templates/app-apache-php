@@ -1,0 +1,101 @@
+#!/bin/sh
+# Stand-in for the official php image's docker-php-ext-install,
+# docker-php-ext-enable and docker-php-ext-configure (installed under all
+# three names).
+#
+# The official images compile each extension from source. This image runs
+# PHP 7.4 from Debian packages (packages.sury.org), so an extension is a
+# php7.4-* package: install and enable map the extension name to that package,
+# install it with apt and enable it. Build flags such as -j4 or --with-freetype
+# are accepted and ignored, because the packaged extensions are already built.
+#
+# An extension that no package provides fails the command, so a Dockerfile can
+# never produce an image that is silently missing an extension.
+set -eu
+
+PHP_V=7.4
+CMD=$(basename "$0")
+UPDATED_LISTS=0
+
+log() {
+  echo "$CMD: $*" >&2
+}
+
+# The php7.4-* package that ships an extension. Most follow php7.4-<name>;
+# these are the exceptions.
+package_for() {
+  case "$1" in
+    mysqli|pdo_mysql|mysqlnd) echo "php$PHP_V-mysql" ;;
+    pdo_pgsql) echo "php$PHP_V-pgsql" ;;
+    pdo_sqlite) echo "php$PHP_V-sqlite3" ;;
+    dom|simplexml|xmlreader|xmlwriter|xsl) echo "php$PHP_V-xml" ;;
+    pdo_odbc) echo "php$PHP_V-odbc" ;;
+    pdo_dblib) echo "php$PHP_V-sybase" ;;
+    *) echo "php$PHP_V-$1" ;;
+  esac
+}
+
+is_loaded() {
+  php -m | tr '[:upper:]' '[:lower:]' | grep -qx -e "$1" -e "zend $1"
+}
+
+has_ini() {
+  [ -f "/etc/php/$PHP_V/mods-available/$1.ini" ]
+}
+
+ensure_apt_lists() {
+  if [ -n "$(find /var/lib/apt/lists -maxdepth 1 -name '*_Packages*' -print -quit 2>/dev/null)" ]; then
+    return 0
+  fi
+  apt-get update
+  UPDATED_LISTS=1
+}
+
+install_package_for() {
+  pkg=$(package_for "$1")
+  ensure_apt_lists
+  if ! apt-cache show "$pkg" >/dev/null 2>&1; then
+    log "no package provides the '$1' extension (looked for $pkg)"
+    return 1
+  fi
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "$pkg"
+}
+
+install_extension() {
+  ext=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+  if ! has_ini "$ext" && is_loaded "$ext"; then
+    log "'$ext' is compiled into PHP; nothing to install"
+    return 0
+  fi
+  has_ini "$ext" || install_package_for "$ext" || return 1
+  phpenmod -v "$PHP_V" -s ALL "$ext"
+  if ! is_loaded "$ext"; then
+    log "'$ext' is installed but PHP does not load it"
+    return 1
+  fi
+  log "'$ext' enabled"
+}
+
+if [ "$CMD" = "docker-php-ext-configure" ]; then
+  log "ignored: packaged extensions are pre-built (args: $*)"
+  exit 0
+fi
+
+status=0
+skip_next=0
+for arg in "$@"; do
+  if [ "$skip_next" = 1 ]; then
+    skip_next=0
+    continue
+  fi
+  case "$arg" in
+    --ini-name) skip_next=1 ;;
+    -*) ;;
+    *) install_extension "$arg" || status=1 ;;
+  esac
+done
+
+if [ "$UPDATED_LISTS" = 1 ]; then
+  rm -rf /var/lib/apt/lists/*
+fi
+exit "$status"
