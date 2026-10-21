@@ -72,6 +72,7 @@ jobs:
         with:
           context: .
           file: ${{ matrix.dockerfile || 'Dockerfile' }}
+          pull: true
           load: true
           tags: temp-build:latest
           build-args: |
@@ -113,6 +114,7 @@ jobs:
         with:
           context: .
           file: ${{ matrix.dockerfile || 'Dockerfile' }}
+          pull: true
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}

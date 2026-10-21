@@ -106,7 +106,15 @@ RUN set -ex; \
     ! { ldd "$extDir"/*.so | grep 'not found'; }; \
     # Check for PHP extension loading errors
     err="$(php --version 3>&1 1>&2 2>&3)"; \
-    [ -z "$err" ]
+    [ -z "$err" ] && \
+    # Fail the build if any critical component is missing. A failure earlier in
+    # the && chain (e.g. a pecl.php.net outage) can short-circuit it WITHOUT
+    # aborting under set -e (bash does not exit on a non-final command in a &&
+    # list), after which the ;-separated checks above can still exit 0 and
+    # publish a partial image. This guard makes any such partial build fail.
+    test -e /etc/apache2/mods-enabled/rewrite.load && \
+    php -m | grep -qix apcu && php -m | grep -qix imagick && php -m | grep -qix redis && \
+    test -f /opt/rds-ca-certs/rds-ca-cert-bundle.pem
 
 # Remap www-data to UID/GID 1000 to match EFS access points
 RUN groupmod -g 1000 www-data && \
