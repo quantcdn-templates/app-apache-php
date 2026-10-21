@@ -35,6 +35,10 @@ jobs:
       contents: read
       packages: write
     strategy:
+      # Build each PHP line independently: a failure on one (e.g. the 7.4
+      # Debian-freshness check) must NOT cancel the others. Needed so the
+      # patched 8.x bases still publish during the CVE-2026-109618/109619 rollout.
+      fail-fast: false
       matrix:
         php_version: ['7.4', '8.2', '8.3', '8.4']
         include:
