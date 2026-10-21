@@ -77,6 +77,7 @@ jobs:
           build-args: |
             PHP_VERSION=${{ matrix.php_version }}
             DEBIAN_VERSION=${{ matrix.debian_version }}
+            CACHEBUST=${{ github.run_id }}-${{ github.run_attempt }}
           cache-from: type=gha,scope=php${{ matrix.php_version }}
           cache-to: type=gha,mode=max,scope=php${{ matrix.php_version }}
 
@@ -119,6 +120,7 @@ jobs:
           build-args: |
             PHP_VERSION=${{ matrix.php_version }}
             DEBIAN_VERSION=${{ matrix.debian_version }}
+            CACHEBUST=${{ github.run_id }}-${{ github.run_attempt }}
           cache-from: |
             type=gha,scope=php${{ matrix.php_version }}
             type=registry,ref=ghcr.io/quantcdn-templates/app-apache-php:cache-php${{ matrix.php_version }}

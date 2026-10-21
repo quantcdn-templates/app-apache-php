@@ -70,6 +70,16 @@ RUN set -eux; \
         unzip; \
     rm -rf /var/lib/apt/lists/*
 
+# Re-apply Debian/Sury security updates on every build so the image never ships
+# with pending updates (the test asserts none are pending). CACHEBUST changes per
+# CI run to invalidate just this layer; the install layer above stays cached.
+ARG CACHEBUST=unset
+RUN set -eux; \
+    echo "cachebust=${CACHEBUST}"; \
+    apt-get update; \
+    apt-get upgrade -y; \
+    rm -rf /var/lib/apt/lists/*
+
 # Match the official image's PHP layout: no php.ini unless one is added to
 # $PHP_INI_DIR, and one conf.d directory scanned by both the Apache module and
 # the CLI. Extensions that the official 7.4 image did not load stay disabled.
