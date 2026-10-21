@@ -170,6 +170,12 @@ EOF
 
 RUN a2enconf quant-host-snippet
 
+# TEMPORARY/EOL — CVE-2026-109618/109619: PHP 7.4 will not get the upstream fix,
+# so block multipart/form-data POST at Apache by DEFAULT (opt back in with env
+# var QUANT_ALLOW_MULTIPART=true). 7.4-only; the PHP 8.x images get the patch.
+COPY php74/apache/quant-legacy-multipart-block.conf /etc/apache2/conf-available/
+RUN a2enconf quant-legacy-multipart-block
+
 RUN sed -i '/DocumentRoot \/var\/www\/html/a\\n\t# Quant Host header override\n\tIncludeOptional /etc/apache2/conf-enabled/quant-host-snippet.conf' /etc/apache2/sites-available/000-default.conf
 
 # Install Composer for PHP dependency management
