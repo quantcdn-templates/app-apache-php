@@ -37,8 +37,8 @@ jobs:
         with:
           quant_organization: ${{ secrets.QUANT_ORGANIZATION }}
           quant_api_key: ${{ secrets.QUANT_API_KEY }}
-          quant_application: ${{ vars.QUANT_APPLICATION || 'templates' }}
-          environment_name_override: ${{ github.event.repository.name }}
+          quant_application: ${{ vars.QUANT_APPLICATION || github.event.repository.name }}
+          environment_name_override: ${{ vars.QUANT_ENVIRONMENT_OVERRIDE }}
           base_url: ${{ env.QUANT_BASE_URL }}
 
       - name: Build and push Apache+PHP image
@@ -85,6 +85,7 @@ jobs:
           base_url: ${{ env.QUANT_BASE_URL }}
 
       - name: Enable idle sleep
+        if: ${{ vars.QUANT_ENABLE_IDLE_SLEEP == 'true' }}
         env:
           QUANT_API_KEY: ${{ secrets.QUANT_API_KEY }}
           ORG: ${{ secrets.QUANT_ORGANIZATION }}
