@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Emit default cache headers for static assets so edge/CDN layers can cache
-# them instead of re-fetching from origin (and origin storage, e.g. EFS) on
+# them instead of re-fetching from origin (and origin storage, e.g. shared filesystem) on
 # every request. mod_expires only applies when the response has no Expires
 # header already, so apps that manage their own caching are unaffected.
 # Disable with QUANT_STATIC_CACHE=0; tune TTL with QUANT_STATIC_CACHE_TTL

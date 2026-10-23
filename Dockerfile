@@ -63,7 +63,7 @@ RUN set -ex; \
     fi; \
     docker-php-ext-enable apcu imagick redis && \
     rm -rf /tmp/pear && \
-    # Install AWS RDS CA certificates
+    # Install managed database CA certificates
     mkdir -p /tmp/rds-certs && \
     curl -fsSL "https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem" \
          -o /tmp/rds-certs/rds-ca-cert-bundle.pem && \
@@ -72,7 +72,7 @@ RUN set -ex; \
     cp /tmp/rds-certs/rds-ca-cert-bundle.pem /usr/local/share/ca-certificates/rds-ca-cert-bundle.crt && \
     update-ca-certificates && \
     rm -rf /tmp/rds-certs && \
-    echo "RDS CA certificates installed successfully" && \
+    echo "Managed database CA certificates installed successfully" && \
     # Clean up
     rm -rf /var/lib/apt/lists/* && \
     # Enable Apache modules
@@ -116,7 +116,7 @@ RUN set -ex; \
     php -m | grep -qix apcu && php -m | grep -qix imagick && php -m | grep -qix redis && \
     test -f /opt/rds-ca-certs/rds-ca-cert-bundle.pem
 
-# Remap www-data to UID/GID 1000 to match EFS access points
+# Remap www-data to UID/GID 1000 to match shared filesystem access points
 RUN groupmod -g 1000 www-data && \
     usermod -u 1000 -g 1000 www-data && \
     # Fix ownership of existing www-data files after UID/GID change

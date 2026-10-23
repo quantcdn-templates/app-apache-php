@@ -138,7 +138,7 @@
                         $username = $_ENV['DB_USERNAME'] ?? 'apache_php';
                         $password = $_ENV['DB_PASSWORD'] ?? 'apache_php';
                         
-                        // Enable TLS/SSL for RDS database connections when certificate is available
+                        // Enable TLS/SSL for managed database connections when certificate is available
                         // Can be disabled for local development with DISABLE_DB_TLS=true
                         $options = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION];
                         $caPath = '/opt/rds-ca-certs/rds-ca-cert-bundle.pem';
