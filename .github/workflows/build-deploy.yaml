@@ -2,8 +2,10 @@
 # Use this as a starting point for your own workflow if you are forking this repository.
 #
 # Configuration Variables:
-# - RUNNER_TYPE: Set to 'ubuntu-24.04-arm' for ARM runners, defaults to 'ubuntu-latest' (x86)
-# - BUILD_PLATFORM: Set to 'linux/arm64' or 'linux/amd64' to match your runner
+# - RUNNER_TYPE: Set to 'ubuntu-24.04-arm' for native ARM builds, defaults to 'ubuntu-latest' (x86).
+#   An x86 runner builds the arm64 image under QEMU, which is slower.
+# - BUILD_PLATFORM: Defaults to 'linux/arm64' to match quant.architecture: ARM64 in
+#   docker-compose.yml. If you change one, change the other ('linux/amd64' with X86_64).
 # - QUANT_BASE_URL: Set to 'https://dash.quantgov.cloud/api/v3' for QuantGov customers
 #   (defaults to 'https://dashboard.quantcdn.io/api/v3')
 name: Build and Push Apache+PHP to Quant Cloud
@@ -28,6 +30,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
@@ -45,7 +50,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          platforms: ${{ vars.BUILD_PLATFORM || 'linux/amd64' }}
+          platforms: ${{ vars.BUILD_PLATFORM || 'linux/arm64' }}
           push: true
           tags: |
             ${{ steps.init.outputs.stripped_endpoint }}/${{ secrets.QUANT_ORGANIZATION }}/${{ steps.init.outputs.quant_application }}:apache-php-${{ steps.init.outputs.image_suffix_clean }}
@@ -53,7 +58,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=php8.4
 
       - name: Translate docker-compose for Quant Cloud
-        uses: quantcdn/quant-cloud-compose-action@v1
+        uses: quantcdn/quant-cloud-compose-action@v4
         id: compose
         with:
           api_key: ${{ secrets.QUANT_API_KEY }}
