@@ -17,7 +17,7 @@ services:
       - DB_USERNAME=apache_php
       - DB_PASSWORD=apache_php
       
-      # Disable TLS for local MySQL (production RDS uses TLS by default)
+      # Disable TLS for local MySQL (the production managed database uses TLS by default)
       - DISABLE_DB_TLS=true
       
       # SMTP Configuration (uncomment for testing)

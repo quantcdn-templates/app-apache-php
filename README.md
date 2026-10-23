@@ -11,7 +11,7 @@ A production-ready Apache HTTP Server with PHP 8.4 template featuring common ext
   - Client IP handling via `Quant-Client-IP` header
   - Host header override for `Quant-Orig-Host`
   - SMTP relay support for email delivery
-  - UID/GID 1000 mapping for EFS compatibility
+  - UID/GID 1000 mapping for shared filesystem compatibility
 - **Logging to stdout/stderr** for Docker best practices
 - **Composer** included for PHP dependency management
 - **Docker & Docker Compose** for containerization
@@ -145,8 +145,8 @@ Key environment variables you can configure:
 - `PHP_MAX_EXECUTION_TIME` - Max script execution time in seconds (default: 300)
 - `PHP_MAX_INPUT_TIME` - Max input parsing time in seconds (default: 300)
 
-#### OPcache (EFS/network-storage I/O tuning)
-- `PHP_OPCACHE_VALIDATE_TIMESTAMPS` - Re-stat cached files for changes (default: 1). Set to 0 on billed network storage (EFS) to eliminate stat traffic; code changes then require an opcache reset — provided by the WordPress reset mu-plugin (see below) for admin-driven changes, or a force-new-deployment.
+#### OPcache (shared filesystem/network-storage I/O tuning)
+- `PHP_OPCACHE_VALIDATE_TIMESTAMPS` - Re-stat cached files for changes (default: 1). Set to 0 on billed network storage (shared filesystem) to eliminate stat traffic; code changes then require an opcache reset — provided by the WordPress reset mu-plugin (see below) for admin-driven changes, or a force-new-deployment.
 - `PHP_OPCACHE_REVALIDATE_FREQ` - Seconds between re-stats when validation is on (default: 3600)
 - `PHP_OPCACHE_MEMORY` - OPcache shared memory in MB (default: 300)
 - `PHP_OPCACHE_MAX_FILES` - Max cached scripts (default: 30000)

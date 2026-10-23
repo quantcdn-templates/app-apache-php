@@ -1,6 +1,6 @@
 ; OPcache Configuration for Production
 ; Optimizes PHP performance by caching compiled bytecode
-; Reduces EFS metadata I/O for PHP apps with many files on shared storage
+; Reduces filesystem metadata I/O for PHP apps with many files on shared storage
 ; Tunable via PHP_OPCACHE_* environment variables (defaults in 02-php-config.sh)
 
 ; Interned strings buffer (MB)
@@ -14,7 +14,7 @@ opcache.memory_consumption=${PHP_OPCACHE_MEMORY}
 
 ; Timestamp validation. Default 1: revalidate cached files every
 ; PHP_OPCACHE_REVALIDATE_FREQ seconds. Set PHP_OPCACHE_VALIDATE_TIMESTAMPS=0
-; for filesystems where stat traffic is billed (EFS): cached files are then
+; for filesystems where stat traffic is billed (shared filesystem): cached files are then
 ; never re-stat'd, and code changes require an opcache_reset() - provided by
 ; the Quant reset hooks (WordPress mu-plugin, Drupal quant_opcache module)
 ; on admin-driven changes, or force-new-deployment for everything else.

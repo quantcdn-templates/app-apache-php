@@ -2,8 +2,10 @@
 # Use this as a starting point for your own workflow if you are forking this repository.
 #
 # Configuration Variables:
-# - RUNNER_TYPE: Set to 'ubuntu-24.04-arm' for ARM runners, defaults to 'ubuntu-latest' (x86)
-# - BUILD_PLATFORM: Set to 'linux/arm64' or 'linux/amd64' to match your runner
+# - RUNNER_TYPE: Set to 'ubuntu-24.04-arm' for native ARM builds, defaults to 'ubuntu-latest' (x86).
+#   An x86 runner builds the arm64 image under QEMU, which is slower.
+# - BUILD_PLATFORM: Defaults to 'linux/arm64' to match quant.architecture: ARM64 in
+#   docker-compose.yml. If you change one, change the other ('linux/amd64' with X86_64).
 # - QUANT_BASE_URL: Set to 'https://dash.quantgov.cloud/api/v3' for QuantGov customers
 #   (defaults to 'https://dashboard.quantcdn.io/api/v3')
 name: Build and Push Apache+PHP to Quant Cloud
@@ -28,6 +30,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
@@ -37,15 +42,15 @@ jobs:
         with:
           quant_organization: ${{ secrets.QUANT_ORGANIZATION }}
           quant_api_key: ${{ secrets.QUANT_API_KEY }}
-          quant_application: ${{ vars.QUANT_APPLICATION || 'templates' }}
-          environment_name_override: ${{ github.event.repository.name }}
+          quant_application: ${{ vars.QUANT_APPLICATION || github.event.repository.name }}
+          environment_name_override: ${{ vars.QUANT_ENVIRONMENT_OVERRIDE }}
           base_url: ${{ env.QUANT_BASE_URL }}
 
       - name: Build and push Apache+PHP image
         uses: docker/build-push-action@v7
         with:
           context: .
-          platforms: ${{ vars.BUILD_PLATFORM || 'linux/amd64' }}
+          platforms: ${{ vars.BUILD_PLATFORM || 'linux/arm64' }}
           push: true
           tags: |
             ${{ steps.init.outputs.stripped_endpoint }}/${{ secrets.QUANT_ORGANIZATION }}/${{ steps.init.outputs.quant_application }}:apache-php-${{ steps.init.outputs.image_suffix_clean }}
@@ -53,7 +58,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=php8.4
 
       - name: Translate docker-compose for Quant Cloud
-        uses: quantcdn/quant-cloud-compose-action@v1
+        uses: quantcdn/quant-cloud-compose-action@v4
         id: compose
         with:
           api_key: ${{ secrets.QUANT_API_KEY }}
@@ -85,11 +90,13 @@ jobs:
           base_url: ${{ env.QUANT_BASE_URL }}
 
       - name: Enable idle sleep
+        if: ${{ vars.QUANT_ENABLE_IDLE_SLEEP == 'true' }}
         env:
           QUANT_API_KEY: ${{ secrets.QUANT_API_KEY }}
           ORG: ${{ secrets.QUANT_ORGANIZATION }}
           APP: ${{ steps.init.outputs.quant_application }}
           ENVIRONMENT: ${{ steps.init.outputs.environment_name }}
+          ENV_EXISTS: ${{ steps.init.outputs.environment_exists }}
         run: |
           URL="$QUANT_BASE_URL/organizations/$ORG/applications/$APP/environments/$ENVIRONMENT"
           AUTH="Authorization: Bearer $QUANT_API_KEY"
@@ -97,15 +104,20 @@ jobs:
           # Environment creation is asynchronous. The record the idle-sleep
           # route binds to does not exist until creationStatus is completed.
           for i in $(seq 1 40); do
-            STATUS=$(curl -s -H "$AUTH" "$URL" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("creationStatus",""))' 2>/dev/null || echo "")
-            if [ "$STATUS" = "completed" ]; then
+            if [ "$ENV_EXISTS" = "true" ]; then
+              echo "Environment already existed; skipping the creation wait"
               break
             fi
-            echo "Waiting for environment ($i/40): creationStatus=${STATUS:-not found}"
+            RESP=$(curl -s -o env.json -w '%{http_code}' -H "$AUTH" "$URL")
+            STATUS=$(python3 -c 'import json; d=json.load(open("env.json")); print(d.get("creationStatus") or ("completed" if d.get("status")=="ACTIVE" else ""))' 2>/dev/null || echo "")
+            if [ "$RESP" = "200" ] && [ "$STATUS" = "completed" ]; then
+              break
+            fi
+            echo "Waiting for environment ($i/40): HTTP $RESP status=${STATUS:-not ready}"
             sleep 15
           done
-          if [ "$STATUS" != "completed" ]; then
-            echo "::error::Environment $ENVIRONMENT did not reach creationStatus=completed"
+          if [ "$ENV_EXISTS" != "true" ] && [ "$STATUS" != "completed" ]; then
+            echo "::error::Environment $ENVIRONMENT did not become ready (last HTTP $RESP)"
             exit 1
           fi
 

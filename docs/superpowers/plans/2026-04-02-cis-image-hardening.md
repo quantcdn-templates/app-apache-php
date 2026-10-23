@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Harden the app-apache-php base image against CIS Docker Benchmark Section 4 (Container Images) controls, taking advantage of Fargate's host-level coverage to focus purely on image hygiene.
+**Goal:** Harden the app-apache-php base image against CIS Docker Benchmark Section 4 (Container Images) controls, taking advantage of the platform's host-level coverage to focus purely on image hygiene.
 
 **Architecture:** Pre-install all optional packages (ssmtp, postfix) at build time so entrypoints are configuration-only. Remove unnecessary tools (sudo, vim). Add HEALTHCHECK and strip SUID/SGID bits.
 
@@ -437,7 +437,7 @@ git commit -m "security: switch to port 8080 and drop privileges via gosu
 Apache now listens on 8080 instead of 80, allowing the main process
 to run as www-data instead of root. Entrypoint scripts still run as
 root for configuration, then gosu drops to www-data before exec'ing
-Apache. Fargate task definitions map external ports independently."
+Apache. Task definitions map external ports independently."
 ```
 
 ---

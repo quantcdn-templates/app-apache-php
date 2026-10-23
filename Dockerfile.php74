@@ -129,7 +129,7 @@ RUN set -eux; \
 
 # From here on, the steps are the same as in Dockerfile.
 
-# AWS RDS CA certificates and Apache modules
+# Managed database CA certificates and Apache modules
 RUN set -eux; \
     mkdir -p /tmp/rds-certs /opt/rds-ca-certs; \
     curl -fsSL "https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem" \
@@ -142,7 +142,7 @@ RUN set -eux; \
     echo 'RemoteIPHeader Quant-Client-IP' >> /etc/apache2/conf-available/remoteip.conf; \
     a2enconf remoteip
 
-# Remap www-data to UID/GID 1000 to match EFS access points
+# Remap www-data to UID/GID 1000 to match shared filesystem access points
 RUN groupmod -g 1000 www-data && \
     usermod -u 1000 -g 1000 www-data && \
     # Fix ownership of existing www-data files after UID/GID change
