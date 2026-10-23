@@ -73,6 +73,9 @@ static_checks() {
     'docker-php-ext-install soap >/dev/null 2>&1 && [ -z "$(ls /var/lib/apt/lists | grep -v -e lock -e partial)" ]'
   check "docker-php-ext-enable accepts --ini-name" 'docker-php-ext-enable --ini-name 50-apcu.ini apcu'
   check "docker-php-ext-install fails for an unknown extension" '! docker-php-ext-install not_a_real_extension'
+  check "php7.4 packages reinstall cleanly (an upgrade must not trip ucf)" \
+    'apt-get update -qq >/dev/null 2>&1 && apt-get install --reinstall -y -qq libapache2-mod-php7.4 php7.4-cli >/dev/null &&
+     [ ! -e /etc/php/7.4/cli/php.ini ] && [ ! -e /etc/php/7.4/apache2/php.ini ]'
   check "no Debian updates are pending" \
     'apt-get update -qq >/dev/null 2>&1 && [ -z "$(apt list --upgradable 2>/dev/null | grep -v ^Listing)" ]'
 }
@@ -161,9 +164,23 @@ docroot_check() {
   docker rm -f "$cid" >/dev/null
 }
 
+phpini_apache_check() {
+  local cid port body
+  cid=$(docker run -d -p 127.0.0.1::80 \
+    --entrypoint sh "$IMAGE" -c 'echo "default_socket_timeout = 4321" > "$PHP_INI_DIR/php.ini" && echo "<?php echo ini_get(\"default_socket_timeout\");" > /var/www/html/i.php && exec docker-entrypoint.sh apache2-foreground')
+  port=$(docker port "$cid" 80/tcp | head -1 | sed 's/.*://')
+  for _ in $(seq 1 30); do
+    body=$(curl -s --max-time 2 "http://127.0.0.1:${port}/i.php") && [ -n "$body" ] && break
+    sleep 1
+  done
+  expect "a php.ini added to \$PHP_INI_DIR is loaded by Apache" "4321" "$body"
+  docker rm -f "$cid" >/dev/null
+}
+
 static_checks
 runtime_checks
 docroot_check
+phpini_apache_check
 
 echo
 if [ "$FAILS" -eq 0 ]; then echo "All checks passed"; else echo "$FAILS check(s) failed"; fi

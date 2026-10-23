@@ -19,7 +19,9 @@ FROM debian:trixie-slim
 # Pinned so that a changed signing key fails the build instead of being trusted.
 ARG SURY_KEYRING_SHA256=7511384559c9ddf1d5ce5f60be429ae9d4e7d01d9480d6f1b7a30c0810cf8b60
 
+# PHPRC makes the CLI and the Apache module read $PHP_INI_DIR/php.ini, if present.
 ENV PHP_INI_DIR=/usr/local/etc/php \
+    PHPRC=/usr/local/etc/php \
     APACHE_CONFDIR=/etc/apache2 \
     APACHE_ENVVARS=/etc/apache2/envvars
 
@@ -81,15 +83,16 @@ RUN set -eux; \
     rm -rf /var/lib/apt/lists/*
 
 # Match the official image's PHP layout: no php.ini unless one is added to
-# $PHP_INI_DIR, and one conf.d directory scanned by both the Apache module and
-# the CLI. Extensions that the official 7.4 image did not load stay disabled.
+# $PHP_INI_DIR (found through PHPRC), and one conf.d directory scanned by both
+# the Apache module and the CLI. Extensions that the official 7.4 image did not
+# load stay disabled. Do not symlink the per-SAPI php.ini files to one file: ucf
+# then sees two packages own it, and every later php7.4 upgrade fails.
 RUN set -eux; \
     mkdir -p "$PHP_INI_DIR/conf.d"; \
     for sapi in apache2 cli; do \
         cp -a "/etc/php/7.4/$sapi/conf.d/." "$PHP_INI_DIR/conf.d/"; \
         rm -rf "/etc/php/7.4/$sapi/conf.d" "/etc/php/7.4/$sapi/php.ini"; \
         ln -s "$PHP_INI_DIR/conf.d" "/etc/php/7.4/$sapi/conf.d"; \
-        ln -s "$PHP_INI_DIR/php.ini" "/etc/php/7.4/$sapi/php.ini"; \
     done; \
     cp /usr/lib/php/7.4/php.ini-production /usr/lib/php/7.4/php.ini-development "$PHP_INI_DIR/"; \
     phpdismod -v 7.4 -s ALL calendar ffi gettext pgsql shmop sysvmsg sysvsem sysvshm xsl; \
