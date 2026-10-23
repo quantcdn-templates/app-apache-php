@@ -96,6 +96,7 @@ jobs:
           ORG: ${{ secrets.QUANT_ORGANIZATION }}
           APP: ${{ steps.init.outputs.quant_application }}
           ENVIRONMENT: ${{ steps.init.outputs.environment_name }}
+          ENV_EXISTS: ${{ steps.init.outputs.environment_exists }}
         run: |
           URL="$QUANT_BASE_URL/organizations/$ORG/applications/$APP/environments/$ENVIRONMENT"
           AUTH="Authorization: Bearer $QUANT_API_KEY"
@@ -103,15 +104,20 @@ jobs:
           # Environment creation is asynchronous. The record the idle-sleep
           # route binds to does not exist until creationStatus is completed.
           for i in $(seq 1 40); do
-            STATUS=$(curl -s -H "$AUTH" "$URL" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("creationStatus",""))' 2>/dev/null || echo "")
-            if [ "$STATUS" = "completed" ]; then
+            if [ "$ENV_EXISTS" = "true" ]; then
+              echo "Environment already existed; skipping the creation wait"
               break
             fi
-            echo "Waiting for environment ($i/40): creationStatus=${STATUS:-not found}"
+            RESP=$(curl -s -o env.json -w '%{http_code}' -H "$AUTH" "$URL")
+            STATUS=$(python3 -c 'import json; d=json.load(open("env.json")); print(d.get("creationStatus") or ("completed" if d.get("status")=="ACTIVE" else ""))' 2>/dev/null || echo "")
+            if [ "$RESP" = "200" ] && [ "$STATUS" = "completed" ]; then
+              break
+            fi
+            echo "Waiting for environment ($i/40): HTTP $RESP status=${STATUS:-not ready}"
             sleep 15
           done
-          if [ "$STATUS" != "completed" ]; then
-            echo "::error::Environment $ENVIRONMENT did not reach creationStatus=completed"
+          if [ "$ENV_EXISTS" != "true" ] && [ "$STATUS" != "completed" ]; then
+            echo "::error::Environment $ENVIRONMENT did not become ready (last HTTP $RESP)"
             exit 1
           fi
 
