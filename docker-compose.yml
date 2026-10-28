@@ -1,6 +1,6 @@
-# Quant Cloud: run on ARM64 to match the arm64 images the org builds.
+# Quant Cloud: run on X86_64 to match images built on standard GitHub runners.
 x-quant-labels:
-  quant.architecture: ARM64
+  quant.architecture: X86_64
 
 services:
   apache-php:
