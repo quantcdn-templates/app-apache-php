@@ -47,7 +47,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          platforms: ${{ vars.BUILD_PLATFORM || 'linux/amd64' }}
+          platforms: ${{ vars.BUILD_PLATFORM || 'linux/arm64' }}
           push: true
           tags: |
             ${{ steps.init.outputs.stripped_endpoint }}/${{ secrets.QUANT_ORGANIZATION }}/${{ steps.init.outputs.quant_application }}:apache-php-${{ steps.init.outputs.image_suffix_clean }}
