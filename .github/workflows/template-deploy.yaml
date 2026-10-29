@@ -32,6 +32,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
+      - name: Set up QEMU
+
+        uses: docker/setup-qemu-action@v3
+
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
@@ -49,7 +54,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          platforms: ${{ vars.BUILD_PLATFORM || 'linux/amd64' }}
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
             ${{ steps.init.outputs.stripped_endpoint }}/${{ secrets.QUANT_ORGANIZATION }}/${{ steps.init.outputs.quant_application }}:apache-php-${{ steps.init.outputs.image_suffix_clean }}
