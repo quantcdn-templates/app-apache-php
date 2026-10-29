@@ -30,9 +30,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
       - name: Initialize Quant Cloud
         uses: quantcdn/quant-cloud-init-action@v4
         id: init
@@ -41,11 +38,24 @@ jobs:
           quant_api_key: ${{ secrets.QUANT_API_KEY }}
           base_url: ${{ vars.QUANT_BASE_URL || 'https://dashboard.quantcdn.io/api/v3' }}
 
+      - name: Select build platform
+        id: build-platform
+        env:
+          BUILD_PLATFORM: ${{ fromJSON(vars.BUILD_PLATFORMS || '{}')[steps.init.outputs.environment_name] || vars.BUILD_PLATFORM || 'linux/amd64' }}
+        run: echo "platform=$BUILD_PLATFORM" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        if: ${{ contains(steps.build-platform.outputs.platform, ',') || (runner.arch == 'X64' && steps.build-platform.outputs.platform != 'linux/amd64') || (runner.arch == 'ARM64' && steps.build-platform.outputs.platform != 'linux/arm64') }}
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
       - name: Build and push Apache+PHP image
         uses: docker/build-push-action@v7
         with:
           context: .
-          platforms: ${{ vars.BUILD_PLATFORM || 'linux/amd64' }}
+          platforms: ${{ steps.build-platform.outputs.platform }}
           push: true
           tags: |
             ${{ steps.init.outputs.stripped_endpoint }}/${{ secrets.QUANT_ORGANIZATION }}/${{ steps.init.outputs.quant_application }}:apache-php-${{ steps.init.outputs.image_suffix_clean }}
