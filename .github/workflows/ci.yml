@@ -30,7 +30,7 @@ jobs:
   build:
     # Only run for quantcdn-templates organization
     if: github.repository_owner == 'quantcdn-templates'
-    runs-on: ${{ vars.RUNNER_TYPE || 'ubuntu-latest' }}
+    runs-on: ${{ contains(fromJSON('["push","schedule","workflow_dispatch"]'), github.event_name) && vars.QUANT_RUNS_ON_ARM64 && fromJSON(vars.QUANT_RUNS_ON_ARM64) || vars.RUNNER_TYPE || 'ubuntu-latest' }}
     permissions:
       contents: read
       packages: write
