@@ -19,7 +19,7 @@ on:
       - main
   schedule:
     # Run daily at midnight UTC to pick up new base image updates
-    - cron: '0 0 * * *'
+    - cron: '7 1 * * *'
   workflow_dispatch:
 
 env:
