@@ -163,6 +163,10 @@ EOF
 
 RUN a2enconf quant-host-snippet
 
+# Static health endpoint for load balancer checks (/_quant/health), served without PHP or the docroot
+COPY quant/apache/quant-health.conf /etc/apache2/conf-available/quant-health.conf
+RUN mkdir -p /usr/local/share/quant && echo ok > /usr/local/share/quant/health.txt && a2enconf quant-health
+
 RUN sed -i '/DocumentRoot \/var\/www\/html/a\\n\t# Quant Host header override\n\tIncludeOptional /etc/apache2/conf-enabled/quant-host-snippet.conf' /etc/apache2/sites-available/000-default.conf
 
 # Install Composer for PHP dependency management
